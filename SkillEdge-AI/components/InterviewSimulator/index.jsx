@@ -38,7 +38,9 @@ export default function InterviewSimulatorWithVoice() {
         : "resume",
     [type, searchParams]
   );
+  
 
+  const count = parseInt(searchParams.get("count") || "5", 10);
   const canStart = useMemo(() => !transcribing, [transcribing]);
   const canStop = useMemo(() => transcribing, [transcribing]);
   const canSubmit = useMemo(() => !transcribing && spoken, [transcribing, spoken]);
@@ -152,7 +154,7 @@ export default function InterviewSimulatorWithVoice() {
       const res = await fetch(`http://localhost:8000/api/interview/generate-question`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, role }),
+        body: JSON.stringify({ type, role, count }),
       });
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const { question: fetched } = await res.json();

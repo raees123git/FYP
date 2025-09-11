@@ -69,6 +69,7 @@ text_generator = pipeline(
 class QuestionRequest(BaseModel):
     type: str
     role: str
+    count: int
 
 @app.post("/api/interview/generate-question")
 async def generate_question(request: QuestionRequest):
@@ -80,9 +81,9 @@ async def generate_question(request: QuestionRequest):
         "Given the following inputs:\n"
         f"Interview Type: {request.type}\n"
         f"Role: {request.role}\n\n"
-        "Please generate exactly 7 unique interview questions tailored to the above.\n"
+        f"Please generate exactly {request.count} unique interview questions tailored to the above.\n"
         "– Output only the questions (no answers, no extra commentary).\n"
-        "– Number them sequentially, in this exact format:\n\n"
+        "– Number them sequentially, in this exact template:\n\n"
         "Question1: <your first question here>\n"
         "Question2: <your second question here>\n"
         "Question3: <…>\n"
@@ -90,10 +91,12 @@ async def generate_question(request: QuestionRequest):
         "Question5: <…>\n"
         "Question6: <…>\n"
         "Question7: <your seventh question here>\n"
+        "note: These are just a syntax for you to follow, suppose if user ask for 5 questions, then generate 5 questions according to the template, always starting from Question1"
         "note: follow the format above of printing Question1 and then the question. it is necessary to follow the format\n"
     )
 
     print(f"You are an interviewer conducting a {request.type} interview for the position of {request.role}.\n")
+    print(f"Questions demanded by user are {request.count}")
     print(request.role)
 
     try:
