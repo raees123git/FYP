@@ -115,6 +115,7 @@ async def generate_question(request: QuestionRequest):
         # Use a regex to pull out each "QuestionN: ..." line
         print(question_text)
         question_text = re.findall(r"(?m)(?:Question\d+:|\d+\.)\s*(.+)", question_text)
+        question_text = question_text[:request.count]  # Limit to requested count
         return {"question": question_text}
 
     except Exception as e:

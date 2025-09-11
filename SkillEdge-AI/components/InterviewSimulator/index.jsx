@@ -14,6 +14,10 @@ export default function InterviewSimulatorWithVoice() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answer, setAnswer] = useState("");
   const [answers, setAnswers] = useState([]);
+  const [answerTimings, setAnswerTimings] = useState([]);
+  const [answerStartTime, setAnswerStartTime] = useState(null);
+  const [audioAnalysis, setAudioAnalysis] = useState([]);
+  const [currentAudioMetrics, setCurrentAudioMetrics] = useState([]);
   const [timeLeft, setTimeLeft] = useState(180);
   const [transcribing, setTranscribing] = useState(false);
   const [spoken, setSpoken] = useState(false);
@@ -92,15 +96,25 @@ export default function InterviewSimulatorWithVoice() {
         console.log("✅ Connected to Whisper server");
         setTranscribing(true);
         setTimerActive(true);
+        setAnswerStartTime(Date.now());
         startTimer();
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.text) {
+          if (data.type === "session_summary") {
+            // Store session summary for later use
+            if (data.audio_summary) {
+              setAudioAnalysis(prev => [...prev, data.audio_summary]);
+            }
+          } else if (data.text) {
             setAnswer((prev) => prev + " " + data.text);
             setSpoken(true);
+            // Store audio metrics for current answer
+            if (data.audio_analysis) {
+              setCurrentAudioMetrics(prev => [...prev, data.audio_analysis]);
+            }
           }
         } catch (err) {
           console.error("WebSocket parse error:", err);
@@ -139,6 +153,22 @@ export default function InterviewSimulatorWithVoice() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }, []);
 
+  // Helper function to aggregate audio metrics
+  const aggregateAudioMetrics = (metrics) => {
+    if (!metrics || metrics.length === 0) return null;
+    
+    const avgConfidence = metrics.reduce((sum, m) => sum + (m.confidence_score || 0), 0) / metrics.length;
+    const tones = metrics.map(m => m.tone?.emotional_tone).filter(Boolean);
+    const pitchLevels = metrics.map(m => m.pitch?.level).filter(Boolean);
+    
+    return {
+      averageConfidence: avgConfidence.toFixed(2),
+      predominantTone: tones.length > 0 ? tones[Math.floor(tones.length / 2)] : "neutral",
+      pitchVariation: pitchLevels.length > 1 ? "varied" : "consistent",
+      metricsCount: metrics.length
+    };
+  };
+
   const enableWebcam = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -173,6 +203,8 @@ export default function InterviewSimulatorWithVoice() {
     const text = qs[index];
     setSpoken(false);
     setAnswer("");
+    setAnswerStartTime(null);
+    setCurrentAudioMetrics([]); // Reset audio metrics for new question
     setTimeLeft(180);
     setCountdown(3);
     for (let i = 3; i > 0; i--) {
@@ -188,15 +220,33 @@ export default function InterviewSimulatorWithVoice() {
   }, []);
 
   const handleSubmit = useCallback(() => {
+    // Calculate timing for this answer
+    const timeTaken = answerStartTime ? (Date.now() - answerStartTime) / 1000 : 180 - timeLeft;
+    const timing = {
+      timeTaken: Math.round(timeTaken),
+      wordsSpoken: answer.trim().split(/\s+/).filter(word => word).length,
+      timeUsed: 180 - timeLeft
+    };
+    
     setAnswers((prev) => [...prev, answer]);
+    setAnswerTimings((prev) => [...prev, timing]);
+    
     if (currentIndex < questions.length - 1) {
       playQuestion(currentIndex + 1, questions);
     } else {
-      const payload = { questions, answers: [...answers, answer] };
+      const payload = { 
+        questions, 
+        answers: [...answers, answer],
+        timings: [...answerTimings, timing],
+        audioAnalysis: [...audioAnalysis, ...(currentAudioMetrics.length > 0 ? [{
+          metrics: currentAudioMetrics,
+          aggregated: aggregateAudioMetrics(currentAudioMetrics)
+        }] : [])]
+      };
       localStorage.setItem("interviewResults", JSON.stringify(payload));
       router.push("/interview/complete");
     }
-  }, [questions, currentIndex, answer, answers, playQuestion, router]);
+  }, [questions, currentIndex, answer, answers, answerTimings, answerStartTime, timeLeft, playQuestion, router]);
 
   const handleTerminate = useCallback(() => {
     if (window.confirm("Terminating now will lose all progress. Are you sure?")) {
