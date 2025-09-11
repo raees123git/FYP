@@ -14,6 +14,7 @@ export default function InterviewTypeSelector() {
   const [position, setPosition] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [existingResume, setExistingResume] = useState(null);
+  const [questionCount, setQuestionCount] = useState(5);
 
   const interviewTypes = [
     {
@@ -90,14 +91,14 @@ export default function InterviewTypeSelector() {
       return;
     }
 
-    window.location.href = `/interview-simulator?type=resume&position=${encodeURIComponent(position)}`;
+    window.location.href = `/interview-simulator?type=resume&position=${encodeURIComponent(position)}&count=${questionCount}`;
   };
 
   const handleContinue = () => {
     if (selectedType === "resume") {
       if (existingResume) {
         // If resume exists, use the position from profile
-        window.location.href = `/interview-simulator?type=resume&position=${encodeURIComponent(position)}`;
+        window.location.href = `/interview-simulator?type=resume&position=${encodeURIComponent(position)}&count=${questionCount}`;
       } else {
         // If no resume exists, handle new upload
         handleResumeUpload();
@@ -107,9 +108,9 @@ export default function InterviewTypeSelector() {
 
     let url;
     if (selectedType === "technical") {
-      url = `/interview-simulator?type=technical&role=${encodeURIComponent(selectedRole)}`;
+      url = `/interview-simulator?type=technical&role=${encodeURIComponent(selectedRole)}&count=${questionCount}`;
     } else {
-      url = `/interview-simulator?type=behavioral`;
+      url = `/interview-simulator?type=behavioral&count=${questionCount}`;
     }
 
     window.location.href = url;
@@ -157,6 +158,26 @@ export default function InterviewTypeSelector() {
               </div>
             );
           })}
+        </div>
+
+        {/* Question count selector */}
+        <div className="mb-8 sm:mb-10 text-center">
+          <h3 className="text-lg sm:text-xl font-semibold mb-3 text-indigo-300">
+            How many questions would you like to answer?
+          </h3>
+          <div className="max-w-xs mx-auto">
+            <input
+              type="number"
+              min="1"
+              max="10"
+              value={questionCount}
+              onChange={(e) => setQuestionCount(parseInt(e.target.value) || 1)}
+              className="w-full px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center text-lg font-semibold"
+            />
+            <p className="text-xs sm:text-sm text-gray-400 mt-2">
+              Choose between 1-10 questions
+            </p>
+          </div>
         </div>
 
         {/* Sub-options for Technical roles */}
