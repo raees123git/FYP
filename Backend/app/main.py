@@ -3,16 +3,27 @@
 from fastapi import FastAPI, HTTPException
 import re
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import List, Dict, Any
 import os
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from peft import PeftModel
 from dotenv import load_dotenv
+import google.generativeai as genai
+import json
 
 # Load env vars
 load_dotenv()
 app = FastAPI()
+
+# Configure Gemini
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+else:
+    print("Warning: GEMINI_API_KEY not found in environment")
 
 # CORS Configuration
 enabled_origins = os.getenv("FRONTEND_URL", "http://localhost:3000").split(",")
@@ -71,6 +82,12 @@ class QuestionRequest(BaseModel):
     role: str
     count: int
 
+class VerbalReportRequest(BaseModel):
+    questions: List[str] = Field(..., description="List of interview questions")
+    answers: List[str] = Field(..., description="List of user answers")
+    interview_type: str = Field(default="technical", description="Type of interview")
+    role: str = Field(default="Software Engineer", description="Role/position for the interview")
+
 @app.post("/api/interview/generate-question")
 async def generate_question(request: QuestionRequest):
     if not request.type or not request.role:
@@ -120,6 +137,113 @@ async def generate_question(request: QuestionRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Model inference failed: {str(e)}")
+
+@app.post("/api/interview/analyze-verbal")
+async def analyze_verbal_report(request: VerbalReportRequest):
+    """Analyze interview answers using Gemini for verbal report generation"""
+    
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="Gemini API key not configured")
+    
+    if len(request.questions) != len(request.answers):
+        raise HTTPException(status_code=400, detail="Questions and answers count mismatch")
+    
+    try:
+        # Prepare the prompt for Gemini
+        prompt = f"""
+        You are an expert interview evaluator. Analyze the following {request.interview_type} interview for the role of {request.role}.
+        
+        Please evaluate each question-answer pair and provide a comprehensive analysis in JSON format.
+        
+        Interview Data:
+        {json.dumps([{"question": q, "answer": a} for q, a in zip(request.questions, request.answers)], indent=2)}
+        
+        Provide analysis in the following JSON structure:
+        {{
+            "overall_score": <number between 0-100>,
+            "summary": "<brief overall assessment>",
+            "metrics": {{
+                "answer_correctness": {{
+                    "score": <0-100>,
+                    "description": "<assessment of technical accuracy>",
+                    "details": ["<specific feedback per answer>"]
+                }},
+                "concepts_understanding": {{
+                    "score": <0-100>,
+                    "description": "<assessment of concept grasp>",
+                    "key_concepts": ["<list of demonstrated concepts>"],
+                    "missing_concepts": ["<concepts that could be improved>"]
+                }},
+                "domain_knowledge": {{
+                    "score": <0-100>,
+                    "description": "<assessment of domain expertise>",
+                    "strengths": ["<strong areas>"],
+                    "gaps": ["<knowledge gaps>"]
+                }},
+                "response_structure": {{
+                    "score": <0-100>,
+                    "description": "<assessment of answer organization>",
+                    "logical_flow": "<evaluation of flow>",
+                    "completeness": "<evaluation of completeness>"
+                }},
+                "depth_of_explanation": {{
+                    "score": <0-100>,
+                    "description": "<assessment of explanation depth>",
+                    "examples_used": <boolean>,
+                    "technical_depth": "<shallow/moderate/deep>"
+                }},
+                "vocabulary_richness": {{
+                    "score": <0-100>,
+                    "description": "<assessment of vocabulary>",
+                    "technical_terms_used": ["<list of technical terms>"],
+                    "repetitive_words": ["<overused words>"],
+                    "vocabulary_level": "<basic/intermediate/advanced>"
+                }}
+            }},
+            "individual_answers": [
+                {{
+                    "question_number": <number>,
+                    "correctness": <0-100>,
+                    "strengths": ["<what was good>"],
+                    "improvements": ["<what could be better>"],
+                    "key_points_covered": ["<main points addressed>"],
+                    "missing_points": ["<important points missed>"]
+                }}
+            ],
+            "recommendations": [
+                "<specific improvement suggestions>"
+            ],
+            "interview_readiness": "<not ready/needs improvement/ready/excellent>"
+        }}
+        
+        Be thorough, fair, and constructive in your evaluation. Focus on both strengths and areas for improvement.
+        Return ONLY valid JSON, no additional text.
+        """
+        
+        # Generate response from Gemini
+        response = gemini_model.generate_content(prompt)
+        
+        # Parse the JSON response
+        try:
+            # Clean the response text to extract JSON
+            response_text = response.text
+            # Find JSON content between curly braces
+            json_start = response_text.find('{')
+            json_end = response_text.rfind('}') + 1
+            if json_start != -1 and json_end > json_start:
+                json_str = response_text[json_start:json_end]
+                analysis = json.loads(json_str)
+            else:
+                raise ValueError("No valid JSON found in response")
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse Gemini response: {response_text}")
+            raise HTTPException(status_code=500, detail=f"Failed to parse analysis: {str(e)}")
+        
+        return analysis
+        
+    except Exception as e:
+        print(f"Error in verbal analysis: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

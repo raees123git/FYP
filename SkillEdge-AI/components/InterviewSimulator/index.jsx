@@ -241,7 +241,9 @@ export default function InterviewSimulatorWithVoice() {
         audioAnalysis: [...audioAnalysis, ...(currentAudioMetrics.length > 0 ? [{
           metrics: currentAudioMetrics,
           aggregated: aggregateAudioMetrics(currentAudioMetrics)
-        }] : [])]
+        }] : [])],
+        type: type,  // Add interview type
+        role: role   // Add role
       };
       localStorage.setItem("interviewResults", JSON.stringify(payload));
       router.push("/interview/complete");
@@ -276,13 +278,18 @@ export default function InterviewSimulatorWithVoice() {
   // ---- Render ----
   if (!started) {
     return (
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 sm:p-8">
-        <h1 className="text-2xl sm:text-4xl font-bold mb-6 text-center">
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 sm:p-8">
+        <h1 className="text-2xl sm:text-4xl font-bold mb-6 text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
           Ready to Start Your Interview?
         </h1>
         <button
-          onClick={() => setStarted(true)}
-          className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg transition-transform hover:scale-105 w-full sm:w-auto max-w-xs"
+          onClick={() => {
+            // Clear any previous interview data
+            localStorage.removeItem("verbalAnalysisReport");
+            localStorage.removeItem("interviewReportData");
+            setStarted(true);
+          }}
+          className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg transition-all hover:scale-105 hover:shadow-primary/25 w-full sm:w-auto max-w-xs"
         >
           Start Interview
         </button>
@@ -291,25 +298,25 @@ export default function InterviewSimulatorWithVoice() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gray-950 text-white p-4 sm:p-8">
+    <div className="relative min-h-screen bg-background text-foreground p-4 sm:p-8">
       {loadingQuestions && <LoadingOverlay />}
       <button
         onClick={handleTerminate}
-        className="absolute bottom-4 right-4 bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 rounded-lg shadow-lg text-sm sm:text-base"
+        className="absolute bottom-4 right-4 bg-destructive hover:bg-destructive/90 text-destructive-foreground px-3 sm:px-4 py-2 rounded-lg shadow-lg transition-all text-sm sm:text-base"
       >
         Terminate Interview
       </button>
 
-      <h1 className="absolute top-20 sm:top-24 left-1/2 transform -translate-x-1/2 text-xl sm:text-3xl font-bold text-white text-center w-full px-4">
+      <h1 className="absolute top-20 sm:top-24 left-1/2 transform -translate-x-1/2 text-xl sm:text-3xl font-bold text-center w-full px-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
         {`Interview of ${role}`}
       </h1>
 
-      <div className="mt-28 sm:mt-32 flex flex-col sm:flex-row items-center justify-center w-full max-w-7xl mx-auto gap-6 sm:gap-10 opacity-90">
+      <div className="mt-28 sm:mt-32 flex flex-col sm:flex-row items-center justify-center w-full max-w-7xl mx-auto gap-6 sm:gap-10">
         {!isMobile && <AvatarSection videoRef={videoRef} />}
 
         <div className={`w-full ${!isMobile ? "sm:w-2/3" : ""} space-y-4 sm:space-y-6`}>
           {countdown !== null && (
-            <div className="text-center text-4xl sm:text-5xl font-bold text-yellow-400 animate-pulse mb-4">
+            <div className="text-center text-4xl sm:text-5xl font-bold text-accent animate-pulse mb-4">
               {countdown}
             </div>
           )}

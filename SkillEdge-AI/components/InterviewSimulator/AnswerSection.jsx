@@ -19,13 +19,13 @@ export default function AnswerSection({
   setHoveredButton
 }) {
   const btnClass = (enabled) =>
-    `${enabled ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-700 cursor-not-allowed"} px-6 py-2 rounded-lg text-white flex items-center`;
+    `${enabled ? "bg-primary hover:bg-primary/90" : "bg-muted cursor-not-allowed"} px-6 py-2 rounded-lg text-primary-foreground flex items-center transition-all`;
 
   return (
-    <div className="bg-gray-800 p-4 sm:p-6 rounded-xl border border-gray-700 space-y-4">
+    <div className="bg-card p-4 sm:p-6 rounded-xl border border-border space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-        <h2 className="text-lg sm:text-xl font-bold">Your Answer</h2>
-        <div className={`text-base sm:text-lg font-semibold ${timeLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-blue-400'}`}>
+        <h2 className="text-lg sm:text-xl font-bold text-foreground">Your Answer</h2>
+        <div className={`text-base sm:text-lg font-semibold ${timeLeft <= 30 ? 'text-destructive animate-pulse' : 'text-primary'}`}>
           Time Left: {formatTime(timeLeft)}
         </div>
       </div>
@@ -37,7 +37,7 @@ export default function AnswerSection({
           setSpoken(!!e.target.value);
         }}
         disabled={transcribing}
-        className="w-full h-24 sm:h-32 p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none text-sm sm:text-base"
+        className="w-full h-24 sm:h-32 p-3 bg-input text-foreground rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm sm:text-base placeholder:text-muted-foreground"
         placeholder="Type your answer here..."
       />
 
