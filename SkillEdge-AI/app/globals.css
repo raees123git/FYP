@@ -7,7 +7,9 @@ body {
 }
 
 @layer base {
+  /* Professional Dark Theme Color Palette */
   :root {
+    /* Light mode - kept for compatibility but not used */
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
@@ -32,33 +34,57 @@ body {
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+  
+  /* Professional Dark Theme - Default */
+  .dark,
+  :root {
+    /* Background colors - Deep sophisticated grays */
+    --background: 222 47% 7%;        /* #0a0e1a - Deep navy-gray background */
+    --foreground: 210 20% 98%;       /* #fafbfc - Clean white text */
+    
+    /* Card and surface colors */
+    --card: 222 44% 10%;              /* #0f1420 - Slightly lighter than background */
+    --card-foreground: 210 20% 98%;   /* Same as foreground */
+    
+    /* Popover and modals */
+    --popover: 222 44% 11%;           /* #111525 - Subtle elevation */
+    --popover-foreground: 210 20% 98%;
+    
+    /* Primary accent - Professional blue */
+    --primary: 217 91% 60%;           /* #4A9EFF - Vibrant professional blue */
+    --primary-foreground: 210 20% 98%;
+    
+    /* Secondary - Muted surfaces */
+    --secondary: 222 44% 14%;         /* #161b2e - Darker surface */
+    --secondary-foreground: 210 20% 98%;
+    
+    /* Muted elements */
+    --muted: 222 44% 16%;             /* #1a1f33 - Subtle backgrounds */
+    --muted-foreground: 215 20% 65%;  /* #94a3b8 - Muted text */
+    
+    /* Accent color - Purple/Violet for highlights */
+    --accent: 263 70% 65%;            /* #9066ff - Modern purple accent */
+    --accent-foreground: 210 20% 98%;
+    
+    /* Destructive/Error states */
+    --destructive: 0 72% 51%;         /* #dc2626 - Clear red for errors */
+    --destructive-foreground: 210 20% 98%;
+    
+    /* Borders and inputs */
+    --border: 222 44% 18%;            /* #1d2235 - Subtle borders */
+    --input: 222 44% 13%;             /* #141826 - Input backgrounds */
+    --ring: 217 91% 60%;              /* Same as primary for focus states */
+    
+    /* Chart colors - Harmonious palette */
+    --chart-1: 217 91% 60%;           /* Blue */
+    --chart-2: 263 70% 65%;           /* Purple */
+    --chart-3: 173 80% 55%;           /* Teal */
+    --chart-4: 43 80% 60%;            /* Gold */
+    --chart-5: 340 75% 60%;           /* Pink */
+    
+    --radius: 0.75rem;
   }
 }
 
@@ -72,26 +98,35 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background-color: #e4e4e4;
+  background-color: hsl(222 44% 10%);
   border-radius: 100px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #353535;
+  background-color: hsl(222 44% 20%);
   border-radius: 100px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(222 44% 25%);
 }
 
 @layer utilities {
   .gradient {
-    @apply bg-gradient-to-b from-gray-400 via-gray-200 to-gray-600;
+    @apply bg-gradient-to-br from-primary via-accent to-primary;
   }
   .gradient-title {
-    @apply gradient font-extrabold tracking-tighter text-transparent bg-clip-text pb-2 pr-2;
+    @apply bg-gradient-to-r from-primary to-accent font-extrabold tracking-tighter text-transparent bg-clip-text pb-2 pr-2;
+  }
+  .gradient-dark {
+    @apply bg-gradient-to-br from-card via-secondary to-card;
   }
 }
 
@@ -104,10 +139,10 @@ body {
   
   background: linear-gradient(
     to right,
-    rgba(255,255,255,0.1) 1px,
+    rgba(74, 158, 255, 0.03) 1px,
     transparent 1px
   ),
-  linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px);
+  linear-gradient(to bottom, rgba(74, 158, 255, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
   pointer-events: none;
   z-index: -1;
@@ -120,7 +155,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, transparent, rgba(0, 0, 0, 0.9));
+  background: radial-gradient(circle at 50% 50%, transparent 30%, hsl(222 47% 7% / 0.95) 100%);
 }
 
 .hero-image-wrapper {
