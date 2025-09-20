@@ -160,25 +160,6 @@ export default function InterviewTypeSelector() {
           })}
         </div>
 
-        {/* Question count selector */}
-        <div className="mb-8 sm:mb-10 text-center">
-          <h3 className="text-lg sm:text-xl font-semibold mb-3 text-indigo-300">
-            How many questions would you like to answer?
-          </h3>
-          <div className="max-w-xs mx-auto">
-            <input
-              type="number"
-              min="1"
-              max="10"
-              value={questionCount}
-              onChange={(e) => setQuestionCount(parseInt(e.target.value) || 1)}
-              className="w-full px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-center text-lg font-semibold"
-            />
-            <p className="text-xs sm:text-sm text-gray-400 mt-2">
-              Choose between 1-10 questions
-            </p>
-          </div>
-        </div>
 
         {/* Sub-options for Technical roles */}
         {selectedType === "technical" && (
