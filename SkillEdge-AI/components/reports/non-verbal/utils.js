@@ -83,7 +83,8 @@ export const calculateFillerWordsList = () => {
   return [
     "um", "uh", "like", "you know", "actually", "basically", 
     "literally", "right", "so", "well", "I mean", "kind of", 
-    "sort of", "yeah"
+    "sort of", "yeah","ohh", "hmm", "huh", "er", "ah", "mm",
+    " Mmm.","oooh","hmmm","Uh", "Uhh", "Uhhh","Ummmm","Ummmmm","Hello","Hi"
   ];
 };
 

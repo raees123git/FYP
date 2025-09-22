@@ -257,11 +257,41 @@ export default function InterviewComplete() {
             Non-Verbal Report
           </button>
           <button
-            onClick={() => alert("Combined Report - Coming Soon!")}
-            disabled={true}
-            className="px-6 py-3 bg-muted text-muted-foreground rounded-xl shadow-lg cursor-not-allowed opacity-50"
+            onClick={() => {
+              // Store the current interview data for the overall feedback report
+              const reportData = {
+                questions,
+                answers,
+                timestamp: new Date().toISOString()
+              };
+              localStorage.setItem("interviewReportData", JSON.stringify(reportData));
+              router.push("/interview/reports/overall-feedback");
+            }}
+            className={`px-6 py-3 rounded-xl shadow-lg transition-all flex items-center space-x-2 ${
+              analysisLoading 
+                ? "bg-gradient-to-r from-primary/50 to-accent/50 text-white/70 cursor-wait" 
+                : analysisError
+                ? "bg-destructive/50 text-destructive-foreground cursor-not-allowed"
+                : "bg-gradient-to-r from-primary to-accent text-white hover:scale-105 hover:shadow-accent/25 cursor-pointer"
+            }`}
+            disabled={analysisLoading || analysisError}
           >
-            Combined Report
+            {analysisLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Preparing Analysis...</span>
+              </>
+            ) : analysisError ? (
+              <>
+                <AlertCircle className="w-4 h-4" />
+                <span>Analysis Failed</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                <span>Overall Feedback</span>
+              </>
+            )}
           </button>
         </div>
       </div>

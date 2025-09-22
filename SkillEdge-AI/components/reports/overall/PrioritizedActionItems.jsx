@@ -1,0 +1,157 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { Target, Clock, AlertTriangle, CheckSquare, ChevronRight, Zap } from "lucide-react";
+import { useState } from "react";
+
+const PrioritizedActionItems = ({ actionItems }) => {
+  const [expandedItem, setExpandedItem] = useState(null);
+
+  if (!actionItems || actionItems.length === 0) return null;
+
+  const getImpactIcon = (impact) => {
+    if (impact === "Critical") return <AlertTriangle className="w-4 h-4 text-destructive" />;
+    if (impact === "High") return <Zap className="w-4 h-4 text-accent" />;
+    return <Target className="w-4 h-4 text-primary" />;
+  };
+
+  const getImpactColor = (impact) => {
+    if (impact === "Critical") return "border-destructive/50 bg-destructive/5";
+    if (impact === "High") return "border-accent/50 bg-accent/5";
+    return "border-primary/30 bg-primary/5";
+  };
+
+  return (
+    <motion.div
+      className="mb-8"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.6 }}
+    >
+      <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        Prioritized Action Plan
+      </h2>
+
+      <div className="space-y-4">
+        {actionItems.map((item, index) => (
+          <motion.div
+            key={item.id}
+            className={`rounded-xl border ${getImpactColor(item.impact)} overflow-hidden transition-all`}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 * index }}
+          >
+            <div
+              className="p-4 cursor-pointer hover:bg-card/50 transition-colors"
+              onClick={() => setExpandedItem(expandedItem === item.id ? null : item.id)}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-card border border-border">
+                      <span className="text-sm font-bold">{index + 1}</span>
+                    </div>
+                    {getImpactIcon(item.impact)}
+                    <span className="px-2 py-1 text-xs bg-secondary rounded-full">
+                      {item.category}
+                    </span>
+                    <span className="px-2 py-1 text-xs bg-card rounded-full flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {item.timeframe}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-lg mb-1">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                </div>
+                <ChevronRight 
+                  className={`w-5 h-5 transition-transform ${
+                    expandedItem === item.id ? "rotate-90" : ""
+                  }`} 
+                />
+              </div>
+            </div>
+
+            {expandedItem === item.id && (
+              <motion.div
+                className="px-4 pb-4 border-t border-border/50"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="pt-4 space-y-4">
+                  {/* Action Details */}
+                  <div className="p-3 bg-card rounded-lg">
+                    <p className="text-xs font-semibold mb-2 text-primary">Recommended Action:</p>
+                    <p className="text-sm">{item.action}</p>
+                  </div>
+
+                  {/* Exercises */}
+                  {item.exercises && item.exercises.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold mb-2">Practice Exercises:</p>
+                      <div className="space-y-2">
+                        {item.exercises.map((exercise, idx) => (
+                          <div key={idx} className="flex items-start gap-2">
+                            <CheckSquare className="w-4 h-4 text-primary mt-0.5" />
+                            <p className="text-sm text-muted-foreground">{exercise}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Progress Tracking */}
+                  <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
+                    <div>
+                      <p className="text-xs font-semibold">Expected Impact</p>
+                      <p className="text-sm text-muted-foreground">
+                        {Math.abs(actionItems[index]?.score || 15)}-{Math.abs(actionItems[index]?.score || 15) + 10}% improvement
+                      </p>
+                    </div>
+                    <button className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
+                      Start Practice
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Summary Card */}
+      <motion.div
+        className="mt-6 p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border border-primary/20"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8 }}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <Target className="w-5 h-5 text-primary" />
+          <h4 className="font-semibold">Action Plan Summary</h4>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Total Actions</p>
+            <p className="text-xl font-bold">{actionItems.length}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Critical Priority</p>
+            <p className="text-xl font-bold text-destructive">
+              {actionItems.filter(i => i.impact === "Critical").length}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Est. Time to Complete</p>
+            <p className="text-xl font-bold">4-6 weeks</p>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mt-3">
+          💡 <span className="font-semibold">Pro Tip:</span> Focus on completing the top 2 critical actions first for maximum impact on your interview performance.
+        </p>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+export default PrioritizedActionItems;

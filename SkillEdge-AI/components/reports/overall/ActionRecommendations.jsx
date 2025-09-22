@@ -1,0 +1,164 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { BookOpen, Lightbulb, TrendingUp, Users, Award } from "lucide-react";
+import { generateOverallReportData, downloadOverallReport } from "./utils";
+
+const ActionRecommendations = ({ verbalData, nonVerbalData, correlations, actionItems }) => {
+  const reportData = generateOverallReportData(verbalData, nonVerbalData, correlations, actionItems);
+  
+  if (!reportData || !reportData.recommendations) return null;
+
+  const handleDownloadReport = () => {
+    downloadOverallReport(reportData, verbalData, nonVerbalData, correlations, actionItems);
+  };
+
+  const getIcon = (priority) => {
+    if (priority === "immediate") return <TrendingUp className="w-5 h-5 text-destructive" />;
+    if (priority === "high") return <Lightbulb className="w-5 h-5 text-accent" />;
+    return <BookOpen className="w-5 h-5 text-primary" />;
+  };
+
+  return (
+    <motion.div
+      className="mb-8"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.7 }}
+    >
+      <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        Comprehensive Recommendations
+      </h2>
+
+      <div className="grid gap-4 mb-6">
+        {reportData.recommendations.map((rec, index) => (
+          <motion.div
+            key={index}
+            className="p-6 bg-card rounded-xl border border-border hover:border-primary/30 transition-all"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 * index }}
+          >
+            <div className="flex items-start gap-4">
+              {getIcon(rec.priority)}
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold text-lg">{rec.title}</h3>
+                  <span className={`px-2 py-1 text-xs rounded-full ${
+                    rec.priority === "immediate" ? "bg-destructive/20 text-destructive" :
+                    rec.priority === "high" ? "bg-accent/20 text-accent" :
+                    "bg-primary/20 text-primary"
+                  }`}>
+                    {rec.priority.toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">{rec.description}</p>
+                <div className="flex items-center gap-2 text-xs">
+                  <Award className="w-3 h-3 text-green-500" />
+                  <span className="text-green-500 font-semibold">
+                    Expected Improvement: {rec.expectedImprovement}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Practice Exercises Section */}
+      {reportData.exercises && reportData.exercises.length > 0 && (
+        <motion.div
+          className="mb-6 p-6 bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl border border-primary/20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+        >
+          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" />
+            Daily Practice Routine
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {reportData.exercises.slice(0, 6).map((exercise, index) => (
+              <div key={index} className="p-3 bg-card rounded-lg">
+                <div className="flex items-start justify-between mb-1">
+                  <p className="text-sm font-medium">{exercise.name}</p>
+                  <span className="text-xs px-2 py-1 bg-secondary rounded-full">
+                    {exercise.duration}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="px-2 py-0.5 bg-secondary rounded-full">
+                    {exercise.category}
+                  </span>
+                  <span>{exercise.frequency}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Resources and Next Steps */}
+      <motion.div
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.9 }}
+      >
+        <div className="p-6 bg-card rounded-xl border border-border">
+          <h4 className="font-semibold mb-3">📚 Recommended Resources</h4>
+          <ul className="space-y-2">
+            <li className="text-sm text-muted-foreground">
+              • Practice mock interviews with AI feedback
+            </li>
+            <li className="text-sm text-muted-foreground">
+              • Record yourself answering common questions
+            </li>
+            <li className="text-sm text-muted-foreground">
+              • Join speaking clubs or practice groups
+            </li>
+            <li className="text-sm text-muted-foreground">
+              • Study successful interview examples
+            </li>
+          </ul>
+        </div>
+
+        <div className="p-6 bg-card rounded-xl border border-border">
+          <h4 className="font-semibold mb-3">🎯 Your Next Steps</h4>
+          <ol className="space-y-2">
+            <li className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">1.</span> Focus on your most critical issue first
+            </li>
+            <li className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">2.</span> Practice daily exercises for 2 weeks
+            </li>
+            <li className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">3.</span> Record progress and adjust approach
+            </li>
+            <li className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">4.</span> Take another assessment to measure improvement
+            </li>
+          </ol>
+        </div>
+      </motion.div>
+
+      {/* Download Button */}
+      <motion.div
+        className="mt-8 flex justify-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1 }}
+      >
+        <button
+          onClick={handleDownloadReport}
+          className="px-6 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-xl shadow-lg hover:scale-105 transition-transform flex items-center gap-2"
+        >
+          <BookOpen className="w-5 h-5" />
+          Download Complete Report
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+export default ActionRecommendations;
