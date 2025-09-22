@@ -29,6 +29,7 @@ export default function NonVerbalReport() {
   const [analytics, setAnalytics] = useState(null);
   const [audioMetrics, setAudioMetrics] = useState(null);
   const [hoveredInfo, setHoveredInfo] = useState(null);
+  const [reportSaved, setReportSaved] = useState(false);
   const [flippedCards, setFlippedCards] = useState({
     speechRate: false,
     wordsPerMinute: false,
@@ -58,6 +59,13 @@ export default function NonVerbalReport() {
       // Process audio analysis if available
       if (interview.audioAnalysis && interview.audioAnalysis.length > 0) {
         processAudioMetrics(interview.audioAnalysis);
+      }
+      
+      // Check if report was already saved
+      const sessionId = interview.sessionId || "";
+      const savedFlag = localStorage.getItem(`nonVerbalReportSaved_${sessionId}`);
+      if (savedFlag) {
+        setReportSaved(true);
       }
     } catch (e) {
       console.error("Failed to parse data:", e);
@@ -120,7 +128,7 @@ export default function NonVerbalReport() {
     
     const pauseAnalysis = analyzePauses(pauses);
     
-    setAnalytics({
+    const analyticsData = {
       totalWords,
       totalTime: Math.round(totalTime),
       wordsPerMinute,
@@ -132,7 +140,70 @@ export default function NonVerbalReport() {
       detectedFillerWords,
       pauseAnalysis,
       questionCount: answers.length
-    });
+    };
+    
+    setAnalytics(analyticsData);
+    
+    // Save non-verbal report to database if not already saved
+    if (!reportSaved && interview) {
+      saveNonVerbalReport(interview, analyticsData);
+    }
+  };
+  
+  const saveNonVerbalReport = async (interview, analyticsData) => {
+    try {
+      // Get the saved interview ID
+      const lastInterviewId = localStorage.getItem("lastInterviewId");
+      if (!lastInterviewId) {
+        console.log("No interview ID found, skipping non-verbal save");
+        return;
+      }
+      
+      // Calculate scores based on analytics
+      const eyeContactScore = Math.min(100, Math.max(0, 100 - (analyticsData.fillerPercentage * 2)));
+      const bodyLanguageScore = analyticsData.wordsPerMinute >= 120 && analyticsData.wordsPerMinute <= 160 ? 85 : 65;
+      const voiceModulationScore = analyticsData.pauseAnalysis.quality === "Good" ? 90 : 
+                                   analyticsData.pauseAnalysis.quality === "Needs Improvement" ? 60 : 75;
+      const facialExpressionsScore = 75; // Default as we don't have facial tracking
+      const overallConfidence = Math.round((eyeContactScore + bodyLanguageScore + voiceModulationScore + facialExpressionsScore) / 4);
+      
+      const nonVerbalData = {
+        eye_contact_score: eyeContactScore,
+        body_language_score: bodyLanguageScore,
+        voice_modulation_score: voiceModulationScore,
+        facial_expressions_score: facialExpressionsScore,
+        overall_confidence: overallConfidence,
+        feedback: `Speech rate: ${analyticsData.speechRate}. ${analyticsData.speechRateDescription} ` +
+                  `Filler words usage: ${analyticsData.fillerPercentage}%. ` +
+                  `Pause pattern: ${analyticsData.pauseAnalysis.quality}.`
+      };
+      
+      // Save to localStorage for immediate access
+      localStorage.setItem("nonVerbalAnalysis", JSON.stringify(nonVerbalData));
+      
+      // Update the interview with non-verbal report
+      const response = await fetch(`/api/reports/update-nonverbal/${lastInterviewId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(nonVerbalData),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Non-verbal report saved:", result);
+        setReportSaved(true);
+        
+        // Mark as saved for this session
+        const sessionId = interview.sessionId || "";
+        localStorage.setItem(`nonVerbalReportSaved_${sessionId}`, "true");
+      } else {
+        console.error("Failed to save non-verbal report");
+      }
+    } catch (error) {
+      console.error("Error saving non-verbal report:", error);
+    }
   };
 
   const processAudioMetrics = (audioAnalysisData) => {

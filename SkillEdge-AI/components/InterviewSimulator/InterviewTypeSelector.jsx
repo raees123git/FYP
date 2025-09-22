@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
-import { supabase } from "@/lib/supabase";
 
 export default function InterviewTypeSelector() {
   const { user } = useUser();
@@ -15,6 +14,11 @@ export default function InterviewTypeSelector() {
   const [isUploading, setIsUploading] = useState(false);
   const [existingResume, setExistingResume] = useState(null);
   const [questionCount, setQuestionCount] = useState(5);
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [resumePdfUrl, setResumePdfUrl] = useState(null);
+  const [loadingResume, setLoadingResume] = useState(false);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customQuestionCount, setCustomQuestionCount] = useState("");
 
   const interviewTypes = [
     {
@@ -53,27 +57,34 @@ export default function InterviewTypeSelector() {
     "Mobile Developer",
   ];
 
-  // Fetch user's profile data to check for existing resume
+  // Only check for resume when resume-based interview is selected
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("resume_url, position")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!error && data?.resume_url) {
-        setExistingResume(data.resume_url);
-        if (data.position) {
-          setPosition(data.position);
+    const checkUserResume = async () => {
+      // Only fetch resume if resume-based interview is selected
+      if (selectedType === "resume" && user) {
+        try {
+          const response = await fetch('/api/profile');
+          if (response.ok) {
+            const profileData = await response.json();
+            if (profileData.resume_file_id) {
+              setExistingResume({
+                file_id: profileData.resume_file_id,
+                filename: profileData.resume_filename || 'Resume.pdf',
+                uploaded_at: profileData.resume_uploaded_at
+              });
+              // Set position from profile if available
+              if (profileData.position) {
+                setPosition(profileData.position);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
         }
       }
     };
-
-    fetchProfile();
-  }, [user]);
+    checkUserResume();
+  }, [user, selectedType]); // Re-run when selectedType changes
 
   const handleResumeUpload = async () => {
     if (!resumeFile) {
@@ -94,11 +105,44 @@ export default function InterviewTypeSelector() {
     window.location.href = `/interview-simulator?type=resume&position=${encodeURIComponent(position)}&count=${questionCount}`;
   };
 
+  const handleViewResume = async () => {
+    if (!existingResume) return;
+    
+    setLoadingResume(true);
+    setShowResumeModal(true);
+    
+    try {
+      const response = await fetch(`/api/resume/download/${existingResume.file_id}`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        setResumePdfUrl(url);
+      } else {
+        toast.error('Failed to load resume');
+        setShowResumeModal(false);
+      }
+    } catch (error) {
+      console.error('Error loading resume:', error);
+      toast.error('Error loading resume');
+      setShowResumeModal(false);
+    } finally {
+      setLoadingResume(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowResumeModal(false);
+    if (resumePdfUrl) {
+      URL.revokeObjectURL(resumePdfUrl);
+      setResumePdfUrl(null);
+    }
+  };
+
   const handleContinue = () => {
     if (selectedType === "resume") {
       if (existingResume) {
-        // If resume exists, use the position from profile
-        window.location.href = `/interview-simulator?type=resume&position=${encodeURIComponent(position)}&count=${questionCount}`;
+        // If resume exists, pass the file_id to the interview simulator
+        window.location.href = `/interview-simulator?type=resume&position=${encodeURIComponent(position)}&count=${questionCount}&resume_id=${existingResume.file_id}`;
       } else {
         // If no resume exists, handle new upload
         handleResumeUpload();
@@ -161,6 +205,96 @@ export default function InterviewTypeSelector() {
         </div>
 
 
+        {/* Question Count Selector - Show for all interview types */}
+        <div className="mb-6 sm:mb-8 text-center">
+          <h3 className="text-lg sm:text-xl font-semibold mb-3 text-gray-300">
+            Select Number of Questions:
+          </h3>
+          <div className="flex gap-2 sm:gap-3 justify-center flex-wrap">
+            {[3, 5, 7, 10].map((count) => (
+              <button
+                key={count}
+                onClick={() => {
+                  setQuestionCount(count);
+                  setShowCustomInput(false);
+                  setCustomQuestionCount("");
+                }}
+                className={`px-4 sm:px-5 py-2 rounded-lg transition-all duration-200 border text-sm sm:text-base font-medium ${
+                  questionCount === count && !showCustomInput
+                    ? selectedType === "technical"
+                      ? "bg-blue-600 text-white border-blue-500"
+                      : selectedType === "behavioral"
+                      ? "bg-green-600 text-white border-green-500"
+                      : "bg-purple-600 text-white border-purple-500"
+                    : "bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700"
+                }`}
+              >
+                {count}
+              </button>
+            ))}
+            
+            {/* Custom input option */}
+            {!showCustomInput ? (
+              <button
+                onClick={() => {
+                  setShowCustomInput(true);
+                  setCustomQuestionCount(questionCount.toString());
+                }}
+                className="px-4 sm:px-5 py-2 rounded-lg transition-all duration-200 border text-sm sm:text-base font-medium bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700"
+              >
+                Custom
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={customQuestionCount}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setCustomQuestionCount(value);
+                    if (value && parseInt(value) > 0 && parseInt(value) <= 20) {
+                      setQuestionCount(parseInt(value));
+                    }
+                  }}
+                  placeholder="1-20"
+                  className="w-20 px-3 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
+                  autoFocus
+                />
+                <button
+                  onClick={() => {
+                    if (customQuestionCount && parseInt(customQuestionCount) > 0 && parseInt(customQuestionCount) <= 20) {
+                      setQuestionCount(parseInt(customQuestionCount));
+                      toast.success(`Set to ${customQuestionCount} questions`);
+                    } else {
+                      toast.error("Please enter a number between 1 and 20");
+                      setShowCustomInput(false);
+                      setCustomQuestionCount("");
+                    }
+                  }}
+                  className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm transition-colors"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCustomInput(false);
+                    setCustomQuestionCount("");
+                    setQuestionCount(5); // Reset to default
+                  }}
+                  className="px-3 py-2 rounded-lg bg-gray-600 hover:bg-gray-700 text-white text-sm transition-colors"
+                >
+                  ✗
+                </button>
+              </div>
+            )}
+          </div>
+          {showCustomInput && (
+            <p className="text-xs text-gray-400 mt-2">Enter a number between 1 and 20</p>
+          )}
+        </div>
+
         {/* Sub-options for Technical roles */}
         {selectedType === "technical" && (
           <div className="mb-8 sm:mb-10 text-center">
@@ -188,13 +322,59 @@ export default function InterviewTypeSelector() {
         {selectedType === "resume" && (
           <div className="mb-8 sm:mb-10 text-center space-y-4 sm:space-y-6">
             {existingResume ? (
-              <div className="max-w-[95%] sm:max-w-md mx-auto p-4 bg-purple-900/30 rounded-lg border border-purple-500/30">
-                <h3 className="text-lg sm:text-xl font-semibold mb-2 text-purple-300">
-                  Resume Already Uploaded
-                </h3>
-                <p className="text-sm text-gray-300">
-                  You have already uploaded your resume. You can proceed with the interview.
-                </p>
+              <div className="max-w-[95%] sm:max-w-md mx-auto">
+                <div className="p-4 bg-purple-900/30 rounded-lg border border-purple-500/30 space-y-3">
+                  <div className="flex items-center justify-center mb-2">
+                    <svg className="w-12 h-12 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-purple-300">
+                    Resume Fetched Successfully!
+                  </h3>
+                  <p className="text-sm text-gray-300">
+                    Your resume has been automatically fetched from your profile.
+                  </p>
+                  <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-600/50">
+                    <p className="text-white text-sm font-medium">{existingResume.filename}</p>
+                    {existingResume.uploaded_at && (
+                      <p className="text-gray-400 text-xs mt-1">
+                        Uploaded on {new Date(existingResume.uploaded_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleViewResume}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2 mx-auto"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    Click to View Your Resume
+                  </button>
+                </div>
+                <div className="max-w-[95%] sm:max-w-md mx-auto mt-4">
+                  <h3 className="text-lg sm:text-xl font-semibold mb-3 text-purple-300">
+                    Select Target Position:
+                  </h3>
+                  <select
+                    value={position}
+                    onChange={(e) => setPosition(e.target.value)}
+                    className="w-full px-3 sm:px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm sm:text-base"
+                  >
+                    <option value="">Select a position</option>
+                    {technicalRoles.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             ) : (
               <>
@@ -267,6 +447,51 @@ export default function InterviewTypeSelector() {
           </button>
         </div>
       </div>
+
+      {/* Resume Viewer Modal */}
+      {showResumeModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl border border-gray-700">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {existingResume?.filename || "Resume"}
+              </h3>
+              <button
+                onClick={handleCloseModal}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* PDF Viewer */}
+            <div className="flex-1 p-4 overflow-hidden">
+              {loadingResume ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-400">Loading resume...</p>
+                  </div>
+                </div>
+              ) : resumePdfUrl ? (
+                <iframe
+                  src={resumePdfUrl}
+                  className="w-full h-full rounded-lg border border-gray-700"
+                  title="Resume PDF Viewer"
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-gray-400">Failed to load resume</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

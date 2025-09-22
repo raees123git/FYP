@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Helper function to get a safe user ID
 async function getSafeUserId() {
@@ -25,44 +26,73 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // First check for the profiles table
-    const { error: tableError } = await supabase
-      .from('profiles')
-      .select('count(*)')
-      .limit(1);
-
-    if (tableError && tableError.code === '42P01') {
-      // Table doesn't exist
-      return NextResponse.json({
-        error: "Profiles table not set up. Please run the setup script.",
-        code: "TABLE_NOT_FOUND"
-      }, { status: 500 });
-    }
-
     console.log("Fetching profile for user:", userId);
+    console.log("Calling backend at:", `${API_URL}/api/profile/`);
 
-    // Get profile
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+    try {
+      // Call FastAPI backend
+      const response = await fetch(`${API_URL}/api/profile/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${userId}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-    if (error) {
-      console.error("Error fetching profile:", error);
-      throw error;
-    }
+      console.log("Backend response status:", response.status);
 
-    if (data) {
-      console.log("Profile found:", data);
-      return NextResponse.json(data);
-    } else {
-      // No profile found, but table exists
-      console.log("No profile found for user:", userId);
-      return NextResponse.json({
-        error: "Profile not found",
-        initialized: false
-      }, { status: 404 });
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Profile not found is expected for new users
+          console.log("Profile not found for new user");
+          return NextResponse.json({
+            error: "Profile not found",
+            initialized: false
+          }, { status: 404 });
+        }
+        
+        // Try to get error details
+        let errorMessage = "Backend error";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.detail || errorMessage;
+        } catch {}
+        
+        console.error("Backend error:", errorMessage);
+        return NextResponse.json(
+          { error: errorMessage },
+          { status: response.status }
+        );
+      }
+
+      const data = await response.json();
+      console.log("Backend response data:", data);
+
+      if (data.success && data.profile) {
+        console.log("Profile found:", data.profile);
+        // Transform the data to match frontend expectations
+        return NextResponse.json({
+          ...data.profile,
+          firstName: data.profile.first_name,
+          lastName: data.profile.last_name,
+          // Include resume fields if they exist
+          resume_filename: data.profile.resume_filename,
+          resume_file_id: data.profile.resume_file_id,
+          resume_uploaded_at: data.profile.resume_uploaded_at,
+        });
+      } else {
+        console.log("No profile found for user:", userId);
+        return NextResponse.json({
+          error: "Profile not found",
+          initialized: false
+        }, { status: 404 });
+      }
+    } catch (fetchError) {
+      console.error("Fetch error:", fetchError.message);
+      return NextResponse.json(
+        { error: "Failed to connect to backend. Please ensure the backend server is running." },
+        { status: 500 }
+      );
     }
   } catch (error) {
     console.error("Error fetching profile:", error.message);
@@ -86,76 +116,30 @@ export async function PUT(request) {
 
     console.log("Updating profile for user:", userId, data);
 
-    // Check if table exists
-    const { error: tableError } = await supabase
-      .from('profiles')
-      .select('count(*)')
-      .limit(1);
-
-    if (tableError && tableError.code === '42P01') {
-      // Table doesn't exist
-      return NextResponse.json({
-        error: "Profiles table not set up. Please run the setup script.",
-        code: "TABLE_NOT_FOUND"
-      }, { status: 500 });
-    }
-
-    // Format the data for the Supabase profiles table
-    const profileData = {
-      first_name: data.firstName || "",
-      last_name: data.lastName || "",
-      industry: data.industry || "",
-      bio: data.bio || "",
-      experience: parseInt(data.experience) || 0,
-      skills: Array.isArray(data.skills) ? data.skills : [],
-      position: data.position || "",
-      updated_at: new Date().toISOString(),
-    };
-
-    // Check if profile exists
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    let result;
-
-    if (existingProfile) {
-      console.log("Updating existing profile");
-      // Update existing profile
-      const { data: updatedProfile, error } = await supabase
-        .from('profiles')
-        .update(profileData)
-        .eq('user_id', userId)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Error updating profile:", error);
-        throw error;
-      }
-      result = updatedProfile;
-    } else {
-      console.log("Creating new profile");
-      // Create new profile
-      const { data: newProfile, error } = await supabase
-        .from('profiles')
-        .insert({ ...profileData, user_id: userId })
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Error creating profile:", error);
-        throw error;
-      }
-      result = newProfile;
-    }
-
-    return NextResponse.json({
-      success: true,
-      profile: result,
+    // Call FastAPI backend
+    const response = await fetch(`${API_URL}/api/profile/`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${userId}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
     });
+
+    const responseData = await response.json();
+
+    if (response.ok) {
+      return NextResponse.json({
+        success: true,
+        profile: responseData.profile,
+      });
+    } else {
+      console.error("Error from backend:", responseData);
+      return NextResponse.json(
+        { error: responseData.detail || "Error updating profile" },
+        { status: response.status }
+      );
+    }
   } catch (error) {
     console.error("Error updating profile:", error.message);
     return NextResponse.json(
@@ -163,4 +147,4 @@ export async function PUT(request) {
       { status: 500 }
     );
   }
-} 
+}

@@ -32,6 +32,63 @@ export default function ViewProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [profileData, setProfileData] = useState(null);
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [resumePdfUrl, setResumePdfUrl] = useState(null);
+  const [loadingResume, setLoadingResume] = useState(false);
+
+  const handleResumeView = async (fileId) => {
+    try {
+      setLoadingResume(true);
+      setShowResumeModal(true);
+      
+      const response = await fetch(`/api/resume/download/${fileId}`);
+      
+      if (response.ok) {
+        // Get the blob from response
+        const blob = await response.blob();
+        
+        // Create a URL for the PDF
+        const url = window.URL.createObjectURL(blob);
+        setResumePdfUrl(url);
+      } else {
+        console.error('Failed to load resume');
+        setShowResumeModal(false);
+      }
+    } catch (error) {
+      console.error('Error loading resume:', error);
+      setShowResumeModal(false);
+    } finally {
+      setLoadingResume(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowResumeModal(false);
+    if (resumePdfUrl) {
+      window.URL.revokeObjectURL(resumePdfUrl);
+      setResumePdfUrl(null);
+    }
+  };
+
+  const handleDownload = async (fileId) => {
+    try {
+      const response = await fetch(`/api/resume/download/${fileId}`);
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = profileData?.resume_filename || 'resume.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -219,18 +276,127 @@ export default function ViewProfilePage() {
             {/* Resume Section */}
             <motion.div variants={cardVariants} className="bg-gray-700/40 p-5 rounded-xl border border-gray-600/30 hover:border-indigo-500/20 transition-all duration-300 hover:translate-y-[-4px]">
               <h3 className="text-lg font-semibold text-white mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Resume</h3>
-              {profileData.resume_url ? (
-                <p className="text-green-400 font-medium mb-2">You have uploaded your resume.</p>
+              {profileData.resume_filename || profileData.resume_file_id ? (
+                <div className="space-y-2">
+                  <p className="text-green-400 font-medium">✅ Resume uploaded</p>
+                  <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-600/50">
+                    <p className="text-white text-sm font-medium">{profileData.resume_filename || "Resume.pdf"}</p>
+                    {profileData.resume_uploaded_at && (
+                      <p className="text-gray-400 text-xs mt-1">
+                        Uploaded on {new Date(profileData.resume_uploaded_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    {profileData.resume_file_id && (
+                      <>
+                        <button
+                          onClick={() => handleResumeView(profileData.resume_file_id)}
+                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View Resume
+                        </button>
+                        <button
+                          onClick={() => handleDownload(profileData.resume_file_id)}
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                          </svg>
+                          Download
+                        </button>
+                      </>
+                    )}
+                    <Link href="/profile/update">
+                      <button className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors">
+                        Update Resume
+                      </button>
+                    </Link>
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-red-400 font-medium">Resume not found</p>
-                  <p className="text-gray-400 text-sm">Upload your resume to enable resume-based interviews.</p>
+                  <p className="text-yellow-400 font-medium">⚠️ No resume uploaded</p>
+                  <p className="text-gray-400 text-sm">Upload your resume to enable resume-based interviews and improve your profile completeness.</p>
+                  <Link href="/profile/update">
+                    <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors mt-2">
+                      Upload Resume
+                    </button>
+                  </Link>
                 </div>
               )}
             </motion.div>
           </motion.div>
         )}
       </motion.div>
+
+      {/* Resume Viewer Modal */}
+      {showResumeModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-gray-900 rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl border border-gray-700"
+          >
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {profileData?.resume_filename || "Resume"}
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleDownload(profileData.resume_file_id)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                  </svg>
+                  Download
+                </button>
+                <button
+                  onClick={handleCloseModal}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            {/* PDF Viewer */}
+            <div className="flex-1 p-4 overflow-hidden">
+              {loadingResume ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-400">Loading resume...</p>
+                  </div>
+                </div>
+              ) : resumePdfUrl ? (
+                <iframe
+                  src={resumePdfUrl}
+                  className="w-full h-full rounded-lg border border-gray-700"
+                  title="Resume PDF Viewer"
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-gray-400">Failed to load resume</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 }
