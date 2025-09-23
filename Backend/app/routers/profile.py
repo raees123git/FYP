@@ -10,9 +10,6 @@ import json
 
 from app.database import (
     get_profiles_collection,
-    get_interview_reports_collection,
-    get_verbal_reports_collection,
-    get_nonverbal_reports_collection
 )
 from app.file_handler import FileHandler
 from app.models import (
@@ -217,26 +214,19 @@ async def delete_profile(user_id: str = Depends(get_current_user_id)):
     """Delete user profile and all related data"""
     try:
         profiles_collection = get_profiles_collection()
-        interview_reports_collection = get_interview_reports_collection()
-        verbal_reports_collection = get_verbal_reports_collection()
-        nonverbal_reports_collection = get_nonverbal_reports_collection()
+
         
         # Delete profile
         profile_result = await profiles_collection.delete_one({"user_id": user_id})
         
-        # Delete all related reports
-        interview_result = await interview_reports_collection.delete_many({"user_id": user_id})
-        verbal_result = await verbal_reports_collection.delete_many({"user_id": user_id})
-        nonverbal_result = await nonverbal_reports_collection.delete_many({"user_id": user_id})
+
         
         return {
             "success": True,
             "message": "Profile and related data deleted successfully",
             "deleted": {
                 "profile": profile_result.deleted_count,
-                "interview_reports": interview_result.deleted_count,
-                "verbal_reports": verbal_result.deleted_count,
-                "nonverbal_reports": nonverbal_result.deleted_count
+
             }
         }
         
@@ -244,45 +234,6 @@ async def delete_profile(user_id: str = Depends(get_current_user_id)):
         print(f"Error deleting profile: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/reports", response_model=Dict[str, Any])
-async def get_user_reports(user_id: str = Depends(get_current_user_id)):
-    """Get all interview reports for a user"""
-    try:
-        interview_reports_collection = get_interview_reports_collection()
-        verbal_reports_collection = get_verbal_reports_collection()
-        nonverbal_reports_collection = get_nonverbal_reports_collection()
-        
-        # Fetch all reports
-        interview_reports = await interview_reports_collection.find({"user_id": user_id}).to_list(100)
-        verbal_reports = await verbal_reports_collection.find({"user_id": user_id}).to_list(100)
-        nonverbal_reports = await nonverbal_reports_collection.find({"user_id": user_id}).to_list(100)
-        
-        # Convert ObjectIds to strings
-        for report in interview_reports:
-            report["_id"] = str(report["_id"])
-            if "created_at" in report:
-                report["created_at"] = report["created_at"].isoformat()
-                
-        for report in verbal_reports:
-            report["_id"] = str(report["_id"])
-            if "created_at" in report:
-                report["created_at"] = report["created_at"].isoformat()
-                
-        for report in nonverbal_reports:
-            report["_id"] = str(report["_id"])
-            if "created_at" in report:
-                report["created_at"] = report["created_at"].isoformat()
-        
-        return {
-            "success": True,
-            "interview_reports": interview_reports,
-            "verbal_reports": verbal_reports,
-            "nonverbal_reports": nonverbal_reports
-        }
-        
-    except Exception as e:
-        print(f"Error fetching reports: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/resume/upload")
 async def upload_resume(

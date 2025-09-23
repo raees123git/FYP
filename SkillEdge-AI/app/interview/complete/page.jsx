@@ -89,10 +89,6 @@ export default function InterviewComplete() {
       const overall = generateOverallAnalysis(verbal, nonVerbal, interviewData);
       setOverallAnalysis(overall);
       
-      // 4. Save all reports together to database
-      if (!interviewSaved && !isSavingRef.current && !savedInterviewIdRef.current) {
-        await saveAllReportsToDatabase(interviewData, verbal, nonVerbal, overall);
-      }
     } catch (error) {
       console.error("Failed to generate all reports:", error);
       setAnalysisError(error.message || "Failed to generate reports. Please try again.");
@@ -190,7 +186,6 @@ export default function InterviewComplete() {
     
     // Store ONLY the data that is actually displayed in the non-verbal report page
     const nonVerbalData = {
-      
       // The ACTUAL data displayed in the non-verbal report (MainStatsGrid component)
       analytics: {
         // Data for Words Per Minute card
@@ -303,7 +298,7 @@ export default function InterviewComplete() {
       ].filter(Boolean)
     };
     
-    // Store ONLY the data that is displayed in the overall report page
+    // Store ONLY the data that the backend model expects
     const overallData = {
       // Core scores displayed
       overall_score: overallScore,
@@ -311,16 +306,8 @@ export default function InterviewComplete() {
       nonverbal_score: nonVerbalScore,
       interview_readiness: readiness,
       
-      // Correlation data shown in report
-      correlations: {
-        overallCorrelation: {
-          correlationStrength: correlationStrength,
-          alignment: verbalScore > nonVerbalScore ? "content-strong" : "delivery-strong",
-          description: correlationStrength >= 80 ? "Excellent alignment between content and delivery" :
-                       correlationStrength >= 60 ? "Good balance with room for improvement" :
-                       "Significant gap between content and delivery skills"
-        }
-      },
+      // Correlation data - structure must match OverallReport model
+      correlations: correlations, // Use the full correlations object defined above
       
       // Action items displayed in the report
       action_items: [

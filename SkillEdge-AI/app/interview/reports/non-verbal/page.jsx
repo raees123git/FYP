@@ -181,26 +181,26 @@ export default function NonVerbalReport() {
       // Save to localStorage for immediate access
       localStorage.setItem("nonVerbalAnalysis", JSON.stringify(nonVerbalData));
       
-      // Update the interview with non-verbal report
-      const response = await fetch(`/api/reports/update-nonverbal/${lastInterviewId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(nonVerbalData),
-      });
+      // // Update the interview with non-verbal report
+      // const response = await fetch(`/api/reports/update-nonverbal/${lastInterviewId}`, {
+      //   method: "PUT",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify(nonVerbalData),
+      // });
       
-      if (response.ok) {
-        const result = await response.json();
-        console.log("Non-verbal report saved:", result);
-        setReportSaved(true);
+      // if (response.ok) {
+      //   const result = await response.json();
+      //   console.log("Non-verbal report saved:", result);
+      //   setReportSaved(true);
         
-        // Mark as saved for this session
-        const sessionId = interview.sessionId || "";
-        localStorage.setItem(`nonVerbalReportSaved_${sessionId}`, "true");
-      } else {
-        console.error("Failed to save non-verbal report");
-      }
+      //   // Mark as saved for this session
+      //   const sessionId = interview.sessionId || "";
+      //   localStorage.setItem(`nonVerbalReportSaved_${sessionId}`, "true");
+      // } else {
+      //   console.error("Failed to save non-verbal report");
+      // }
     } catch (error) {
       console.error("Error saving non-verbal report:", error);
     }

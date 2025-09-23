@@ -68,18 +68,3 @@ def get_profiles_collection():
     """Get profiles collection"""
     return get_collection("profiles")
 
-def get_interview_reports_collection():
-    """Get interview reports collection"""
-    return get_collection("interview_reports")
-
-def get_verbal_reports_collection():
-    """Get verbal reports collection"""
-    return get_collection("verbal_reports")
-
-def get_nonverbal_reports_collection():
-    """Get non-verbal reports collection"""
-    return get_collection("nonverbal_reports")
-
-def get_overall_reports_collection():
-    """Get overall reports collection"""
-    return get_collection("overall_reports")
