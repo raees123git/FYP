@@ -142,7 +142,7 @@ export default function PastInterviewsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 to-purple-400 text-transparent bg-clip-text">
+          <h1 className="mt-10 text-4xl md:text-5xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 to-purple-400 text-transparent bg-clip-text">
             Past Interviews
           </h1>
           <p className="text-gray-400 text-lg">

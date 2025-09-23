@@ -14,62 +14,349 @@ export default function InterviewComplete() {
   const [analysisError, setAnalysisError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [interviewSaved, setInterviewSaved] = useState(false);
+  const [nonVerbalAnalysis, setNonVerbalAnalysis] = useState(null);
+  const [overallAnalysis, setOverallAnalysis] = useState(null);
   const isSavingRef = useRef(false);  // Use ref for immediate tracking
   const savedInterviewIdRef = useRef(null);  // Track saved interview ID
   const router = useRouter();
 
   useEffect(() => {
-    const raw = localStorage.getItem("interviewResults");
-    if (!raw) {
-      router.replace("/");
-      return;
+  const raw = localStorage.getItem("interviewResults");
+  if (!raw) {
+    router.replace("/");
+    return;
+  }
+  try {
+    const parsedData = JSON.parse(raw);
+    setData(parsedData);
+
+    // Create a unique session ID for this interview if not exists
+    const sessionId = parsedData.sessionId || `interview_${Date.now()}`;
+    if (!parsedData.sessionId) {
+      parsedData.sessionId = sessionId;
+      localStorage.setItem("interviewResults", JSON.stringify(parsedData));
     }
-    try {
-      const parsedData = JSON.parse(raw);
-      setData(parsedData);
-      
-      // Create a unique session ID for this interview if not exists
-      const sessionId = parsedData.sessionId || `interview_${Date.now()}`;
-      if (!parsedData.sessionId) {
-        parsedData.sessionId = sessionId;
-        localStorage.setItem("interviewResults", JSON.stringify(parsedData));
-      }
-      
-      // Check if this interview was already saved
-      const savedInterviewId = localStorage.getItem(`savedInterview_${sessionId}`);
-      if (savedInterviewId) {
-        setInterviewSaved(true);
-        savedInterviewIdRef.current = savedInterviewId;
-      }
-      
-      // Check if verbal analysis already exists for this session
-      const existingAnalysis = localStorage.getItem(`verbalAnalysisReport_${sessionId}`);
-      if (existingAnalysis) {
-        try {
-          const analysis = JSON.parse(existingAnalysis);
-          setVerbalAnalysis(analysis);
-          // Also set it in the general localStorage key for backward compatibility
-          localStorage.setItem("verbalAnalysisReport", JSON.stringify(analysis));
-          setAnalysisLoading(false);
-          
-          // Don't save here if already saved - it was saved when analysis was first generated
-          if (savedInterviewId) {
-            console.log("Interview already saved, skipping save on reload");
-          }
-        } catch (e) {
-          console.error("Failed to parse existing analysis:", e);
-          // If parsing fails, fetch new analysis
-          fetchVerbalAnalysis(parsedData);
+
+    // Check if this interview was already saved
+    const savedInterviewId = localStorage.getItem(`savedInterview_${sessionId}`);
+    if (savedInterviewId) {
+      setInterviewSaved(true);
+      savedInterviewIdRef.current = savedInterviewId;
+    }
+
+    // Check if verbal analysis already exists for this session
+    const existingAnalysis = localStorage.getItem(`verbalAnalysisReport_${sessionId}`);
+    if (existingAnalysis) {
+      try {
+        const analysis = JSON.parse(existingAnalysis);
+        setVerbalAnalysis(analysis);
+        // Also set it in the general localStorage key for backward compatibility
+        localStorage.setItem("verbalAnalysisReport", JSON.stringify(analysis));
+        setAnalysisLoading(false);
+
+        // Don't save here if already saved - it was saved when analysis was first generated
+        if (savedInterviewId) {
+          console.log("Interview already saved, skipping save on reload");
         }
-      } else {
-        // Fetch verbal analysis in the background
+      } catch (e) {
+        console.error("Failed to parse existing analysis:", e);
+        // If parsing fails, fetch new analysis
         fetchVerbalAnalysis(parsedData);
       }
-    } catch (e) {
-      console.error("Failed to parse interviewResults:", e);
-      router.replace("/");
+    } else {
+      // Generate all reports for the interview
+      generateAllReports(parsedData);
     }
-  }, [router]);
+  } catch (e) {
+    console.error("Failed to parse interviewResults:", e);
+    router.replace("/");
+  }
+}, [router]);
+
+
+  // Generate all three reports
+  const generateAllReports = async (interviewData) => {
+    try {
+      // 1. Generate verbal analysis
+      const verbal = await fetchVerbalAnalysis(interviewData);
+      if (!verbal) return;
+      
+      // 2. Generate non-verbal analysis
+      const nonVerbal = generateNonVerbalAnalysis(interviewData);
+      setNonVerbalAnalysis(nonVerbal);
+      
+      // 3. Generate overall analysis
+      const overall = generateOverallAnalysis(verbal, nonVerbal, interviewData);
+      setOverallAnalysis(overall);
+      
+      // 4. Save all reports together to database
+      if (!interviewSaved && !isSavingRef.current && !savedInterviewIdRef.current) {
+        await saveAllReportsToDatabase(interviewData, verbal, nonVerbal, overall);
+      }
+    } catch (error) {
+      console.error("Failed to generate all reports:", error);
+      setAnalysisError(error.message || "Failed to generate reports. Please try again.");
+      setAnalysisLoading(false);
+    }
+  };
+
+  // Generate non-verbal analysis from interview data
+  const generateNonVerbalAnalysis = (interviewData) => {
+    const { answers, timings = [] } = interviewData;
+    
+    let totalWords = 0;
+    let totalTime = 0;
+    let fillerWords = 0;
+    let detectedFillerWords = {};
+    let pauses = [];
+    
+    const fillerWordsList = [
+      "um", "uh", "like", "you know", "actually", "basically", 
+      "literally", "right", "so", "well", "I mean", "kind of", 
+      "sort of", "yeah", "ohh", "hmm", "huh", "er", "ah", "mm"
+    ];
+    
+    answers.forEach((answer, index) => {
+      const words = answer.trim().split(/\s+/).filter(word => word);
+      totalWords += words.length;
+      
+      const lowerAnswer = answer.toLowerCase();
+      fillerWordsList.forEach(filler => {
+        const regex = new RegExp(`\\b${filler}\\b`, 'gi');
+        const matches = lowerAnswer.match(regex);
+        if (matches) {
+          fillerWords += matches.length;
+          detectedFillerWords[filler] = (detectedFillerWords[filler] || 0) + matches.length;
+        }
+      });
+      
+      if (timings[index]) {
+        totalTime += timings[index].timeUsed || 60;
+        const wpm = (timings[index].wordsSpoken / (timings[index].timeUsed / 60)) || 0;
+        if (wpm < 100) pauses.push("long");
+        else if (wpm > 160) pauses.push("short");
+        else pauses.push("normal");
+      } else {
+        totalTime += 60;
+        pauses.push("normal");
+      }
+    });
+    
+    const wordsPerMinute = totalTime > 0 ? Math.round((totalWords / totalTime) * 60) : 0;
+    const fillerPercentage = totalWords > 0 ? ((fillerWords / totalWords) * 100).toFixed(1) : 0;
+    
+    // Analyze pauses
+    const pauseCounts = {
+      long: pauses.filter(p => p === "long").length,
+      normal: pauses.filter(p => p === "normal").length,
+      short: pauses.filter(p => p === "short").length
+    };
+    
+    let pausePattern = "Balanced";
+    let pauseDescription = "Your pause pattern shows good variety.";
+    let pauseRecommendation = "Continue maintaining your current pause pattern.";
+    
+    if (pauseCounts.long > pauseCounts.normal + pauseCounts.short) {
+      pausePattern = "Too Many Long Pauses";
+      pauseDescription = "You tend to have lengthy pauses between thoughts.";
+      pauseRecommendation = "Practice maintaining a steady flow with shorter pauses.";
+    } else if (pauseCounts.short > pauseCounts.normal + pauseCounts.long) {
+      pausePattern = "Rushed Speech";
+      pauseDescription = "You speak with minimal pauses.";
+      pauseRecommendation = "Add strategic pauses to emphasize key points.";
+    }
+    
+    // Speech rate analysis
+    let speechRate = "Good Pace";
+    let speechRateColor = "text-green-400";
+    let speechRateDescription = "Your speech rate is optimal for clear communication.";
+    
+    if (wordsPerMinute < 120) {
+      speechRate = "Slow Pace";
+      speechRateColor = "text-yellow-400";
+      speechRateDescription = "You speak relatively slowly. Consider picking up the pace slightly to maintain engagement.";
+    } else if (wordsPerMinute > 160) {
+      speechRate = "Fast Pace";
+      speechRateColor = "text-orange-400";
+      speechRateDescription = "You speak quite quickly. Consider slowing down slightly for better clarity.";
+    }
+    
+    // Calculate scores
+    const eyeContactScore = Math.min(100, Math.max(0, 100 - (parseFloat(fillerPercentage) * 2)));
+    const bodyLanguageScore = wordsPerMinute >= 120 && wordsPerMinute <= 160 ? 85 : 65;
+    const voiceModulationScore = pausePattern === "Balanced" ? 90 : pausePattern === "Rushed Speech" ? 60 : 75;
+    const facialExpressionsScore = 75; // Default value
+    const overallConfidence = Math.round((eyeContactScore + bodyLanguageScore + voiceModulationScore + facialExpressionsScore) / 4);
+    
+    // Store ONLY the data that is actually displayed in the non-verbal report page
+    const nonVerbalData = {
+      
+      // The ACTUAL data displayed in the non-verbal report (MainStatsGrid component)
+      analytics: {
+        // Data for Words Per Minute card
+        totalWords,
+        totalTime: Math.round(totalTime),
+        wordsPerMinute,
+        
+        // Data for Speech Rate card
+        speechRate,
+        speechRateColor,
+        speechRateDescription,
+        
+        // Data for Filler Words card
+        fillerWords,
+        fillerPercentage,
+        detectedFillerWords,
+        
+        // Data for Pause Pattern card
+        pauseAnalysis: {
+          pattern: pausePattern,
+          description: pauseDescription,
+          type: pausePattern, // Used in the card
+          recommendation: pauseRecommendation
+        },
+        
+        // Question count for DetailedAnalysis component
+        questionCount: answers.length
+      }
+    };
+    
+    // Store in localStorage for report pages
+    const sessionId = interviewData.sessionId || `interview_${Date.now()}`;
+    localStorage.setItem("nonVerbalAnalysis", JSON.stringify(nonVerbalData));
+    localStorage.setItem(`nonVerbalAnalysis_${sessionId}`, JSON.stringify(nonVerbalData));
+    
+    return nonVerbalData;
+  };
+
+  // Generate overall analysis from verbal and non-verbal reports
+  const generateOverallAnalysis = (verbalReport, nonVerbalReport, interviewData) => {
+    const verbalScore = verbalReport?.overall_score || 0;
+    const nonVerbalScore = nonVerbalReport?.overall_confidence || 0;
+    const overallScore = Math.round((verbalScore + nonVerbalScore) / 2);
+    
+    let readiness = "needs improvement";
+    if (overallScore >= 80) readiness = "excellent";
+    else if (overallScore >= 70) readiness = "ready";
+    else if (overallScore >= 50) readiness = "needs improvement";
+    else readiness = "not ready";
+    
+    const correlationStrength = Math.abs(verbalScore - nonVerbalScore) <= 15 ? 85 : 
+                                Math.abs(verbalScore - nonVerbalScore) <= 30 ? 60 : 40;
+    
+    // Determine strengths and areas for improvement
+    const strengths = [];
+    const improvements = [];
+    
+    if (verbalScore >= 80) strengths.push("Excellent technical knowledge and domain expertise");
+    else if (verbalScore >= 70) strengths.push("Good understanding of concepts");
+    else improvements.push("Strengthen technical knowledge and domain expertise");
+    
+    if (nonVerbalScore >= 80) strengths.push("Outstanding communication delivery and confidence");
+    else if (nonVerbalScore >= 70) strengths.push("Good presentation skills");
+    else improvements.push("Improve communication delivery and confidence");
+    
+    if (Math.abs(verbalScore - nonVerbalScore) <= 15) {
+      strengths.push("Well-balanced content and delivery skills");
+    } else if (Math.abs(verbalScore - nonVerbalScore) > 30) {
+      improvements.push("Work on balancing content knowledge with presentation skills");
+    }
+    
+    // Generate detailed correlation data
+    const correlations = {
+      overallCorrelation: {
+        correlationStrength: correlationStrength,
+        alignment: verbalScore > nonVerbalScore ? "content-strong" : "delivery-strong",
+        description: correlationStrength >= 80 ? "Excellent alignment between content and delivery" :
+                     correlationStrength >= 60 ? "Good balance with room for improvement" :
+                     "Significant gap between content and delivery skills"
+      },
+      specificCorrelations: {
+        knowledgeToConfidence: {
+          score: Math.round(100 - Math.abs(verbalScore - nonVerbalScore)),
+          description: "How well your knowledge translates to confident delivery"
+        },
+        structureToFluency: {
+          score: verbalReport?.metrics?.response_structure?.score && nonVerbalReport?.analytics?.wordsPerMinute ?
+                 Math.round((verbalReport.metrics.response_structure.score + 
+                 (nonVerbalReport.analytics.wordsPerMinute >= 120 && nonVerbalReport.analytics.wordsPerMinute <= 160 ? 85 : 60)) / 2) : 70,
+          description: "Alignment between answer structure and speech fluency"
+        },
+        vocabularyToClarity: {
+          score: verbalReport?.metrics?.vocabulary_richness?.score || 70,
+          description: "Technical vocabulary usage and communication clarity"
+        }
+      },
+      performanceGaps: [
+        verbalScore > nonVerbalScore + 20 ? {
+          area: "Delivery Enhancement",
+          gap: Math.round(verbalScore - nonVerbalScore),
+          priority: "High",
+          recommendation: "Focus on improving non-verbal communication to match your strong technical knowledge"
+        } : null,
+        nonVerbalScore > verbalScore + 20 ? {
+          area: "Knowledge Depth",
+          gap: Math.round(nonVerbalScore - verbalScore),
+          priority: "High",
+          recommendation: "Strengthen technical knowledge to match your good presentation skills"
+        } : null
+      ].filter(Boolean)
+    };
+    
+    // Store ONLY the data that is displayed in the overall report page
+    const overallData = {
+      // Core scores displayed
+      overall_score: overallScore,
+      verbal_score: verbalScore,
+      nonverbal_score: nonVerbalScore,
+      interview_readiness: readiness,
+      
+      // Correlation data shown in report
+      correlations: {
+        overallCorrelation: {
+          correlationStrength: correlationStrength,
+          alignment: verbalScore > nonVerbalScore ? "content-strong" : "delivery-strong",
+          description: correlationStrength >= 80 ? "Excellent alignment between content and delivery" :
+                       correlationStrength >= 60 ? "Good balance with room for improvement" :
+                       "Significant gap between content and delivery skills"
+        }
+      },
+      
+      // Action items displayed in the report
+      action_items: [
+        verbalScore < 70 ? {
+          item: "Improve technical knowledge and domain expertise",
+          priority: "high",
+          category: "verbal"
+        } : null,
+        nonVerbalScore < 70 ? {
+          item: "Work on communication delivery and confidence",
+          priority: "high",
+          category: "non-verbal"
+        } : null,
+        Math.abs(verbalScore - nonVerbalScore) > 30 ? {
+          item: "Balance content knowledge with presentation skills",
+          priority: "medium",
+          category: "overall"
+        } : null
+      ].filter(Boolean),
+      
+      // Insights section
+      insights: {
+        strengths: strengths,
+        areas_for_improvement: improvements
+      },
+      
+      summary: `Overall performance score: ${overallScore}/100. ${readiness === 'excellent' ? 'Excellent performance! You demonstrate strong technical knowledge and communication skills.' : readiness === 'ready' ? 'Good job! You are interview ready with minor areas for improvement.' : readiness === 'needs improvement' ? 'Keep practicing to improve your interview skills.' : 'Significant preparation needed before interviews.'}`
+    };
+    
+    // Store in localStorage for report pages
+    const sessionId = interviewData.sessionId || `interview_${Date.now()}`;
+    localStorage.setItem("overallAnalysis", JSON.stringify(overallData));
+    localStorage.setItem(`overallAnalysis_${sessionId}`, JSON.stringify(overallData));
+    
+    return overallData;
+  };
 
   const fetchVerbalAnalysis = async (interviewData, isRetry = false) => {
     try {
@@ -104,10 +391,8 @@ export default function InterviewComplete() {
       setAnalysisLoading(false);
       setRetryCount(0);
       
-      // Save interview to database after analysis is complete
-      if (!interviewSaved && !isSavingRef.current && !savedInterviewIdRef.current) {
-        saveInterviewToDatabase(interviewData, analysis);
-      }
+      // Return the analysis for further processing
+      return analysis;
     } catch (error) {
       console.error("Failed to fetch verbal analysis:", error);
       
@@ -124,8 +409,8 @@ export default function InterviewComplete() {
     }
   };
 
-  // Function to save interview to database
-  const saveInterviewToDatabase = async (interviewData, verbalReport) => {
+  // Function to save all reports to database at once
+  const saveAllReportsToDatabase = async (interviewData, verbalReport, nonVerbalReport, overallReport) => {
     // Prevent duplicate saves using ref for immediate check
     if (interviewSaved || isSavingRef.current || savedInterviewIdRef.current) {
       console.log("Interview already saved or save in progress, skipping...");
@@ -148,19 +433,20 @@ export default function InterviewComplete() {
     }
     
     try {
+      // Log the data we're about to save
+      console.log("Preparing to save interview with reports:");
+      console.log("Verbal report available:", !!verbalReport);
+      console.log("Non-verbal report available:", !!nonVerbalReport);
+      console.log("Overall report available:", !!overallReport);
+      
       const saveData = {
         interview_type: interviewData.type || "technical",
         role: interviewData.role || "Software Engineer",
         questions: interviewData.questions || [],
         answers: interviewData.answers || [],
-        verbal_report: verbalReport ? {
-          overall_score: verbalReport.overall_score || 0,
-          summary: verbalReport.summary || "",
-          metrics: verbalReport.metrics || {},
-          strengths: verbalReport.recommendations?.filter(r => r.toLowerCase().includes("strength") || r.toLowerCase().includes("good")) || [],
-          improvements: verbalReport.recommendations?.filter(r => r.toLowerCase().includes("improve") || r.toLowerCase().includes("work on")) || verbalReport.recommendations || []
-        } : null,
-        nonverbal_report: null  // Will be updated later when non-verbal report is generated
+        verbal_report: verbalReport || null,
+        nonverbal_report: nonVerbalReport || null,
+        overall_report: overallReport || null
       };
 
       const response = await fetch("/api/reports/save-interview", {
@@ -173,7 +459,7 @@ export default function InterviewComplete() {
 
       if (response.ok) {
         const result = await response.json();
-        console.log("Interview saved successfully:", result);
+        console.log("Interview with all reports saved successfully:", result);
         setInterviewSaved(true);
         
         // Store the interview ID for future updates
@@ -183,7 +469,9 @@ export default function InterviewComplete() {
           localStorage.setItem(`savedInterview_${sessionId}`, result.data.interview_id);
         }
       } else {
-        console.error("Failed to save interview");
+        const errorData = await response.json();
+        console.error("Failed to save interview:", errorData);
+        console.error("Error details:", errorData.error || errorData.detail || "Unknown error");
         isSavingRef.current = false;  // Reset on failure
       }
     } catch (error) {
@@ -281,7 +569,7 @@ export default function InterviewComplete() {
                   setAnalysisLoading(true);
                   setAnalysisError(null);
                   setRetryCount(0);
-                  fetchVerbalAnalysis(data);
+                  generateAllReports(data);
                 }}
                 className="px-4 py-2 bg-destructive/20 hover:bg-destructive/30 text-destructive rounded-lg text-sm transition-all"
               >

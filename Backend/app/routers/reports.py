@@ -87,17 +87,22 @@ async def save_interview_report(
         saved_reports = {
             "interview_id": interview_id,
             "verbal_report_id": None,
-            "nonverbal_report_id": None
+            "nonverbal_report_id": None,
+            "overall_report_id": None
         }
         
         # Save verbal report if provided
         if request.verbal_report:
+            print(f"Saving verbal report with score: {request.verbal_report.get('overall_score', 0)}")
             verbal_report = VerbalReport(
                 user_id=user_id,
                 interview_id=interview_id,
                 overall_score=request.verbal_report.get("overall_score", 0),
                 summary=request.verbal_report.get("summary", ""),
                 metrics=request.verbal_report.get("metrics", {}),
+                individual_answers=request.verbal_report.get("individual_answers", []),
+                recommendations=request.verbal_report.get("recommendations", []),
+                interview_readiness=request.verbal_report.get("interview_readiness", ""),
                 strengths=request.verbal_report.get("strengths", []),
                 improvements=request.verbal_report.get("improvements", []),
                 created_at=datetime.utcnow()
@@ -111,15 +116,11 @@ async def save_interview_report(
         
         # Save non-verbal report if provided
         if request.nonverbal_report:
+            print(f"Saving non-verbal report with analytics data")
             nonverbal_report = NonVerbalReport(
                 user_id=user_id,
                 interview_id=interview_id,
-                eye_contact_score=request.nonverbal_report.get("eye_contact_score", 0),
-                body_language_score=request.nonverbal_report.get("body_language_score", 0),
-                voice_modulation_score=request.nonverbal_report.get("voice_modulation_score", 0),
-                facial_expressions_score=request.nonverbal_report.get("facial_expressions_score", 0),
-                overall_confidence=request.nonverbal_report.get("overall_confidence", 0),
-                feedback=request.nonverbal_report.get("feedback", ""),
+                analytics=request.nonverbal_report.get("analytics", {}),
                 created_at=datetime.utcnow()
             )
             
@@ -128,6 +129,33 @@ async def save_interview_report(
             
             nonverbal_result = await nonverbal_reports_collection.insert_one(nonverbal_dict)
             saved_reports["nonverbal_report_id"] = str(nonverbal_result.inserted_id)
+        
+        # Save overall report if provided
+        if request.overall_report:
+            print(f"Saving overall report with score: {request.overall_report.get('overall_score', 0)}")
+            overall_reports_collection = get_overall_reports_collection()
+            
+            overall_report = OverallReport(
+                user_id=user_id,
+                interview_id=interview_id,
+                overall_score=request.overall_report.get("overall_score", 0),
+                verbal_score=request.overall_report.get("verbal_score", 0),
+                nonverbal_score=request.overall_report.get("nonverbal_score", 0),
+                interview_readiness=request.overall_report.get("interview_readiness", ""),
+                correlations=request.overall_report.get("correlations", {}),
+                action_items=request.overall_report.get("action_items", []),
+                insights=request.overall_report.get("insights", {}),
+                summary=request.overall_report.get("summary", ""),
+                created_at=datetime.utcnow()
+            )
+            
+            overall_dict = overall_report.dict(by_alias=True)
+            overall_dict.pop("_id", None)
+            
+            overall_result = await overall_reports_collection.insert_one(overall_dict)
+            saved_reports["overall_report_id"] = str(overall_result.inserted_id)
+        
+        print(f"Save complete - Verbal: {saved_reports['verbal_report_id']}, NonVerbal: {saved_reports['nonverbal_report_id']}, Overall: {saved_reports['overall_report_id']}")
         
         return {
             "success": True,
@@ -240,6 +268,13 @@ async def get_interview_report(
             "user_id": user_id
         })
         
+        # Fetch related overall report
+        overall_reports_collection = get_overall_reports_collection()
+        overall_report = await overall_reports_collection.find_one({
+            "interview_id": interview_id,
+            "user_id": user_id
+        })
+        
         # Convert ObjectIds to strings
         interview["_id"] = str(interview["_id"])
         if "created_at" in interview:
@@ -255,11 +290,17 @@ async def get_interview_report(
             if "created_at" in nonverbal_report:
                 nonverbal_report["created_at"] = nonverbal_report["created_at"].isoformat()
         
+        if overall_report:
+            overall_report["_id"] = str(overall_report["_id"])
+            if "created_at" in overall_report:
+                overall_report["created_at"] = overall_report["created_at"].isoformat()
+        
         return {
             "success": True,
             "interview": interview,
             "verbal_report": verbal_report,
-            "nonverbal_report": nonverbal_report
+            "nonverbal_report": nonverbal_report,
+            "overall_report": overall_report
         }
         
     except Exception as e:
@@ -317,12 +358,7 @@ async def update_nonverbal_report(
             update_result = await nonverbal_reports_collection.update_one(
                 {"interview_id": interview_id, "user_id": user_id},
                 {"$set": {
-                    "eye_contact_score": nonverbal_data.get("eye_contact_score", 0),
-                    "body_language_score": nonverbal_data.get("body_language_score", 0),
-                    "voice_modulation_score": nonverbal_data.get("voice_modulation_score", 0),
-                    "facial_expressions_score": nonverbal_data.get("facial_expressions_score", 0),
-                    "overall_confidence": nonverbal_data.get("overall_confidence", 0),
-                    "feedback": nonverbal_data.get("feedback", ""),
+                    "analytics": nonverbal_data.get("analytics", {}),
                     "updated_at": datetime.utcnow()
                 }}
             )
@@ -336,12 +372,7 @@ async def update_nonverbal_report(
             nonverbal_report = NonVerbalReport(
                 user_id=user_id,
                 interview_id=interview_id,
-                eye_contact_score=nonverbal_data.get("eye_contact_score", 0),
-                body_language_score=nonverbal_data.get("body_language_score", 0),
-                voice_modulation_score=nonverbal_data.get("voice_modulation_score", 0),
-                facial_expressions_score=nonverbal_data.get("facial_expressions_score", 0),
-                overall_confidence=nonverbal_data.get("overall_confidence", 0),
-                feedback=nonverbal_data.get("feedback", ""),
+                analytics=nonverbal_data.get("analytics", {}),
                 created_at=datetime.utcnow()
             )
             

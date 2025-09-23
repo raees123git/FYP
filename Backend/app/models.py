@@ -83,6 +83,9 @@ class VerbalReport(BaseModel):
     overall_score: float = Field(..., ge=0, le=100)
     summary: str
     metrics: Dict[str, Any] = Field(default_factory=dict)
+    individual_answers: List[Dict[str, Any]] = Field(default_factory=list)
+    recommendations: List[str] = Field(default_factory=list)
+    interview_readiness: str = Field(default="")
     strengths: List[str] = Field(default_factory=list)
     improvements: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -93,16 +96,11 @@ class VerbalReport(BaseModel):
         json_encoders = {ObjectId: str}
 
 class NonVerbalReport(BaseModel):
-    """Non-verbal analysis report model"""
+    """Non-verbal analysis report model - stores only what's displayed in the report"""
     id: Optional[str] = Field(default=None, alias="_id")
     user_id: str = Field(..., description="Clerk user ID")
     interview_id: Optional[str] = Field(default=None, description="Reference to interview report")
-    eye_contact_score: float = Field(..., ge=0, le=100)
-    body_language_score: float = Field(..., ge=0, le=100)
-    voice_modulation_score: float = Field(..., ge=0, le=100)
-    facial_expressions_score: float = Field(..., ge=0, le=100)
-    overall_confidence: float = Field(..., ge=0, le=100)
-    feedback: str
+    analytics: Dict[str, Any] = Field(default_factory=dict)  # Store speech analytics displayed in report
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:
