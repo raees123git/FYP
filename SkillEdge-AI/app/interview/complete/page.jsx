@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
@@ -13,6 +13,9 @@ export default function InterviewComplete() {
   const [analysisLoading, setAnalysisLoading] = useState(true);
   const [analysisError, setAnalysisError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [interviewSaved, setInterviewSaved] = useState(false);
+  const isSavingRef = useRef(false);  // Use ref for immediate tracking
+  const savedInterviewIdRef = useRef(null);  // Track saved interview ID
   const router = useRouter();
 
   useEffect(() => {
@@ -32,6 +35,13 @@ export default function InterviewComplete() {
         localStorage.setItem("interviewResults", JSON.stringify(parsedData));
       }
       
+      // Check if this interview was already saved
+      const savedInterviewId = localStorage.getItem(`savedInterview_${sessionId}`);
+      if (savedInterviewId) {
+        setInterviewSaved(true);
+        savedInterviewIdRef.current = savedInterviewId;
+      }
+      
       // Check if verbal analysis already exists for this session
       const existingAnalysis = localStorage.getItem(`verbalAnalysisReport_${sessionId}`);
       if (existingAnalysis) {
@@ -41,6 +51,11 @@ export default function InterviewComplete() {
           // Also set it in the general localStorage key for backward compatibility
           localStorage.setItem("verbalAnalysisReport", JSON.stringify(analysis));
           setAnalysisLoading(false);
+          
+          // Don't save here if already saved - it was saved when analysis was first generated
+          if (savedInterviewId) {
+            console.log("Interview already saved, skipping save on reload");
+          }
         } catch (e) {
           console.error("Failed to parse existing analysis:", e);
           // If parsing fails, fetch new analysis
@@ -88,6 +103,11 @@ export default function InterviewComplete() {
       setVerbalAnalysis(analysis);
       setAnalysisLoading(false);
       setRetryCount(0);
+      
+      // Save interview to database after analysis is complete
+      if (!interviewSaved && !isSavingRef.current && !savedInterviewIdRef.current) {
+        saveInterviewToDatabase(interviewData, analysis);
+      }
     } catch (error) {
       console.error("Failed to fetch verbal analysis:", error);
       
@@ -101,6 +121,77 @@ export default function InterviewComplete() {
         setAnalysisError(error.message || "Failed to generate verbal analysis. Please try again later.");
         setAnalysisLoading(false);
       }
+    }
+  };
+
+  // Function to save interview to database
+  const saveInterviewToDatabase = async (interviewData, verbalReport) => {
+    // Prevent duplicate saves using ref for immediate check
+    if (interviewSaved || isSavingRef.current || savedInterviewIdRef.current) {
+      console.log("Interview already saved or save in progress, skipping...");
+      return;
+    }
+    
+    // Mark as saving immediately
+    isSavingRef.current = true;
+    
+    const sessionId = interviewData.sessionId || `interview_${Date.now()}`;
+    
+    // Double-check in localStorage before saving
+    const existingSavedId = localStorage.getItem(`savedInterview_${sessionId}`);
+    if (existingSavedId) {
+      console.log("Found existing saved interview in localStorage, skipping...");
+      setInterviewSaved(true);
+      savedInterviewIdRef.current = existingSavedId;
+      isSavingRef.current = false;
+      return;
+    }
+    
+    try {
+      const saveData = {
+        interview_type: interviewData.type || "technical",
+        role: interviewData.role || "Software Engineer",
+        questions: interviewData.questions || [],
+        answers: interviewData.answers || [],
+        verbal_report: verbalReport ? {
+          overall_score: verbalReport.overall_score || 0,
+          summary: verbalReport.summary || "",
+          metrics: verbalReport.metrics || {},
+          strengths: verbalReport.recommendations?.filter(r => r.toLowerCase().includes("strength") || r.toLowerCase().includes("good")) || [],
+          improvements: verbalReport.recommendations?.filter(r => r.toLowerCase().includes("improve") || r.toLowerCase().includes("work on")) || verbalReport.recommendations || []
+        } : null,
+        nonverbal_report: null  // Will be updated later when non-verbal report is generated
+      };
+
+      const response = await fetch("/api/reports/save-interview", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(saveData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Interview saved successfully:", result);
+        setInterviewSaved(true);
+        
+        // Store the interview ID for future updates
+        if (result.data?.interview_id) {
+          savedInterviewIdRef.current = result.data.interview_id;
+          localStorage.setItem("lastInterviewId", result.data.interview_id);
+          localStorage.setItem(`savedInterview_${sessionId}`, result.data.interview_id);
+        }
+      } else {
+        console.error("Failed to save interview");
+        isSavingRef.current = false;  // Reset on failure
+      }
+    } catch (error) {
+      console.error("Error saving interview to database:", error);
+      isSavingRef.current = false;  // Reset on error
+    } finally {
+      // Always reset the saving flag after operation completes
+      isSavingRef.current = false;
     }
   };
 

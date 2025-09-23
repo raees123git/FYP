@@ -39,9 +39,10 @@ export default function InterviewSimulatorWithVoice() {
       ? searchParams.get("role") || "Software Engineer"
       : type === "behavioral"
         ? "behavioral"
-        : "resume",
+        : searchParams.get("position") || "Software Engineer",
     [type, searchParams]
   );
+  const resumeId = searchParams.get("resume_id");
   
 
   const count = parseInt(searchParams.get("count") || "5", 10);
@@ -181,11 +182,43 @@ export default function InterviewSimulatorWithVoice() {
   const fetchAllQuestions = useCallback(async () => {
     setLoadingQuestions(true);
     try {
+      let requestBody = { type, role, count };
+      
+      // If this is a resume-based interview, fetch and parse the resume first
+      if (type === "resume" && resumeId) {
+        try {
+          // Fetch the parsed resume content through Next.js API
+          const parseRes = await fetch(`/api/interview/parse-resume/${resumeId}`, {
+            method: "GET",
+            headers: { 
+              "Content-Type": "application/json",
+            },
+          });
+          
+          if (parseRes.ok) {
+            const parseData = await parseRes.json();
+            // Add the resume content to the request
+            requestBody.resume_content = parseData.interview_content;
+            console.log("Resume parsed successfully for interview");
+          } else {
+            console.error("Failed to parse resume, falling back to generic questions");
+            // Fall back to generic questions if resume parsing fails
+            requestBody.type = "technical";
+          }
+        } catch (parseErr) {
+          console.error("Error parsing resume:", parseErr);
+          // Fall back to generic questions
+          requestBody.type = "technical";
+        }
+      }
+      
+      // Generate questions (either resume-based or regular)
       const res = await fetch(`http://localhost:8000/api/interview/generate-question`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, role, count }),
+        body: JSON.stringify(requestBody),
       });
+      
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const { question: fetched } = await res.json();
       const firstSeven = Array.isArray(fetched) ? fetched.slice(0, 7) : [];
@@ -196,7 +229,7 @@ export default function InterviewSimulatorWithVoice() {
     } finally {
       setLoadingQuestions(false);
     }
-  }, [type, role]);
+  }, [type, role, resumeId, count]);
 
   const playQuestion = useCallback(async (index, qs) => {
     setCurrentIndex(index);
