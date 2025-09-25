@@ -96,11 +96,11 @@ class VerbalReport(BaseModel):
         json_encoders = {ObjectId: str}
 
 class NonVerbalReport(BaseModel):
-    """Non-verbal analysis report model - stores only what's displayed in the report"""
+    """Non-verbal analysis report model - stores comprehensive non-verbal data including advanced voice analysis"""
     id: Optional[str] = Field(default=None, alias="_id")
     user_id: str = Field(..., description="Clerk user ID")
     interview_id: Optional[str] = Field(default=None, description="Reference to interview report")
-    analytics: Dict[str, Any] = Field(default_factory=dict)  # Store speech analytics displayed in report
+    analytics: Dict[str, Any] = Field(default_factory=dict)  # Store complete comprehensive non-verbal data
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:

@@ -1,58 +1,67 @@
-import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+// import { NextRequest, NextResponse } from 'next/server';
+// import { currentUser, getAuth } from '@clerk/nextjs/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// export async function GET(request) {
+//   try {
+//     // Get user authentication from Clerk
+//     let userId = null;
+//     try {
+//       const auth = getAuth(request);
+//       userId = auth?.userId;
+//       if (!userId) {
+//         const user = await currentUser();
+//         userId = user?.id;
+//       }
+//     } catch (authError) {
+//       console.error('Auth error:', authError.message);
+//     }
+    
+//     if (!userId) {
+//       return NextResponse.json(
+//         { success: false, error: 'Unauthorized' },
+//         { status: 401 }
+//       );
+//     }
 
-// Helper function to get a safe user ID
-async function getSafeUserId() {
-  try {
-    const { userId } = await auth();
-    if (!userId) return null;
+//     // Get query parameters
+//     const { searchParams } = new URL(request.url);
+//     const limit = searchParams.get('limit') || '10';
 
-    // Clean up userId to ensure it's safe for DB
-    return userId.replace(/[^a-zA-Z0-9_-]/g, '');
-  } catch (error) {
-    console.error("Error getting user ID:", error);
-    return null;
-  }
-}
+//     // Call the Python backend API
+//     const backendResponse = await fetch(`http://localhost:8000/api/reports/recent?limit=${limit}`, {
+//       method: 'GET',
+//       headers: {
+//         'Authorization': `Bearer ${userId}`,
+//       },
+//     });
 
-// GET: Fetch recent interview reports
-export async function GET(request) {
-  try {
-    const userId = await getSafeUserId();
+//     if (!backendResponse.ok) {
+//       const errorData = await backendResponse.json();
+//       console.error('Backend API error:', errorData);
+//       return NextResponse.json(
+//         { 
+//           success: false, 
+//           error: errorData.detail || 'Failed to fetch recent reports' 
+//         },
+//         { status: backendResponse.status }
+//       );
+//     }
 
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+//     const result = await backendResponse.json();
+    
+//     return NextResponse.json({
+//       success: true,
+//       data: result
+//     });
 
-    console.log("Fetching recent interviews for user:", userId);
-
-    // Call FastAPI backend
-    const response = await fetch(`${API_URL}/api/reports/recent?limit=20`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${userId}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { error: errorData.detail || "Failed to fetch interviews" },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data);
-
-  } catch (error) {
-    console.error("Error fetching recent interviews:", error.message);
-    return NextResponse.json(
-      { error: error.message || "Error fetching interview reports" },
-      { status: 500 }
-    );
-  }
-}
+//   } catch (error) {
+//     console.error('Error in recent reports API:', error);
+//     return NextResponse.json(
+//       { 
+//         success: false, 
+//         error: 'Internal server error' 
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }

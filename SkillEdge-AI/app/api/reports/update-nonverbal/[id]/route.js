@@ -1,62 +1,84 @@
-import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+// import { NextRequest, NextResponse } from 'next/server';
+// import { currentUser, getAuth } from '@clerk/nextjs/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-// Helper function to get a safe user ID
-async function getSafeUserId() {
-  try {
-    const { userId } = await auth();
-    if (!userId) return null;
-
-    // Clean up userId to ensure it's safe for DB
-    return userId.replace(/[^a-zA-Z0-9_-]/g, '');
-  } catch (error) {
-    console.error("Error getting user ID:", error);
-    return null;
-  }
-}
-
-// PUT: Update non-verbal report for an interview
-export async function PUT(request, { params }) {
-  try {
-    const userId = await getSafeUserId();
-    const { id } = params; // interview_id
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const data = await request.json();
+// export async function PUT(request, { params }) {
+//   try {
+//     // Get user authentication from Clerk
+//     let userId = null;
+//     try {
+//       const auth = getAuth(request);
+//       userId = auth?.userId;
+//       if (!userId) {
+//         const user = await currentUser();
+//         userId = user?.id;
+//       }
+//     } catch (authError) {
+//       console.error('Auth error:', authError.message);
+//     }
     
-    console.log("Updating non-verbal report for interview:", id);
+//     if (!userId) {
+//       return NextResponse.json(
+//         { success: false, error: 'Unauthorized' },
+//         { status: 401 }
+//       );
+//     }
 
-    // Call FastAPI backend
-    const response = await fetch(`${API_URL}/api/reports/update-nonverbal/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${userId}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+//     const { id } = params;
+    
+//     if (!id) {
+//       return NextResponse.json(
+//         { success: false, error: 'Interview ID is required' },
+//         { status: 400 }
+//       );
+//     }
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { error: errorData.detail || "Failed to update non-verbal report" },
-        { status: response.status }
-      );
-    }
+//     // Parse the request body
+//     const body = await request.json();
 
-    const result = await response.json();
-    return NextResponse.json(result);
+//     // Call the Python backend API
+//     const backendResponse = await fetch(`http://localhost:8000/api/reports/update-nonverbal/${id}`, {
+//       method: 'PUT',
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'Authorization': `Bearer ${userId}`,
+//       },
+//       body: JSON.stringify(body),
+//     });
 
-  } catch (error) {
-    console.error("Error updating non-verbal report:", error.message);
-    return NextResponse.json(
-      { error: error.message || "Error updating non-verbal report" },
-      { status: 500 }
-    );
-  }
-}
+//     if (!backendResponse.ok) {
+//       if (backendResponse.status === 404) {
+//         return NextResponse.json(
+//           { success: false, error: 'Interview report not found' },
+//           { status: 404 }
+//         );
+//       }
+      
+//       const errorData = await backendResponse.json();
+//       console.error('Backend API error:', errorData);
+//       return NextResponse.json(
+//         { 
+//           success: false, 
+//           error: errorData.detail || 'Failed to update non-verbal report' 
+//         },
+//         { status: backendResponse.status }
+//       );
+//     }
+
+//     const result = await backendResponse.json();
+    
+//     return NextResponse.json({
+//       success: true,
+//       data: result
+//     });
+
+//   } catch (error) {
+//     console.error('Error in update non-verbal API:', error);
+//     return NextResponse.json(
+//       { 
+//         success: false, 
+//         error: 'Internal server error' 
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }

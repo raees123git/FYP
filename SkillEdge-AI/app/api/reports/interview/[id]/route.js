@@ -1,59 +1,79 @@
-import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+// import { NextRequest, NextResponse } from 'next/server';
+// import { currentUser, getAuth } from '@clerk/nextjs/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// export async function GET(request, { params }) {
+//   try {
+//     // Get user authentication from Clerk
+//     let userId = null;
+//     try {
+//       const auth = getAuth(request);
+//       userId = auth?.userId;
+//       if (!userId) {
+//         const user = await currentUser();
+//         userId = user?.id;
+//       }
+//     } catch (authError) {
+//       console.error('Auth error:', authError.message);
+//     }
+    
+//     if (!userId) {
+//       return NextResponse.json(
+//         { success: false, error: 'Unauthorized' },
+//         { status: 401 }
+//       );
+//     }
 
-// Helper function to get a safe user ID
-async function getSafeUserId() {
-  try {
-    const { userId } = await auth();
-    if (!userId) return null;
+//     const { id } = params;
+    
+//     if (!id) {
+//       return NextResponse.json(
+//         { success: false, error: 'Interview ID is required' },
+//         { status: 400 }
+//       );
+//     }
 
-    // Clean up userId to ensure it's safe for DB
-    return userId.replace(/[^a-zA-Z0-9_-]/g, '');
-  } catch (error) {
-    console.error("Error getting user ID:", error);
-    return null;
-  }
-}
+//     // Call the Python backend API
+//     const backendResponse = await fetch(`http://localhost:8000/api/reports/interview/${id}`, {
+//       method: 'GET',
+//       headers: {
+//         'Authorization': `Bearer ${userId}`,
+//       },
+//     });
 
-// GET: Fetch specific interview report with all details
-export async function GET(request, { params }) {
-  try {
-    const userId = await getSafeUserId();
-    const { id } = params;
+//     if (!backendResponse.ok) {
+//       if (backendResponse.status === 404) {
+//         return NextResponse.json(
+//           { success: false, error: 'Interview report not found' },
+//           { status: 404 }
+//         );
+//       }
+      
+//       const errorData = await backendResponse.json();
+//       console.error('Backend API error:', errorData);
+//       return NextResponse.json(
+//         { 
+//           success: false, 
+//           error: errorData.detail || 'Failed to fetch interview report' 
+//         },
+//         { status: backendResponse.status }
+//       );
+//     }
 
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+//     const result = await backendResponse.json();
+    
+//     return NextResponse.json({
+//       success: true,
+//       data: result
+//     });
 
-    console.log("Fetching interview details for:", id);
-
-    // Call FastAPI backend
-    const response = await fetch(`${API_URL}/api/reports/interview/${id}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${userId}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { error: errorData.detail || "Failed to fetch interview" },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data);
-
-  } catch (error) {
-    console.error("Error fetching interview details:", error.message);
-    return NextResponse.json(
-      { error: error.message || "Error fetching interview details" },
-      { status: 500 }
-    );
-  }
-}
+//   } catch (error) {
+//     console.error('Error in get interview API:', error);
+//     return NextResponse.json(
+//       { 
+//         success: false, 
+//         error: 'Internal server error' 
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
