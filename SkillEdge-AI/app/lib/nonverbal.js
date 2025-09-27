@@ -1,7 +1,11 @@
 // Non-verbal analysis utilities extracted from interview/complete page
 
 // Generate basic non-verbal analysis for UI display and localStorage
-export function generateBasicNonVerbalAnalysis(interviewData) {
+export async function generateBasicNonVerbalAnalysis(interviewData) {
+  // Add debug info about when this function is called
+  console.log('⚠️ generateBasicNonVerbalAnalysis called at:', new Date().toISOString());
+  // console.trace('📍 Call stack trace'); // Disabled trace to prevent performance impact
+  
   const { answers, timings = [] } = interviewData;
 
   let totalWords = 0;
@@ -122,11 +126,34 @@ export function generateBasicNonVerbalAnalysis(interviewData) {
     audioAnalysisKeys: interviewData.audioAnalysis ? Object.keys(interviewData.audioAnalysis) : 'No keys'
   });
 
+  // Check if audio processing was already done to prevent duplicate processing
+  const cacheKey = `audioMetrics_${interviewData.sessionId || 'default'}`;
   let audioMetrics = null;
-  if (interviewData.audioAnalysis && interviewData.audioAnalysis.length > 0) {
+  
+  // Try to get from cache first
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    const cached = window.sessionStorage.getItem(cacheKey);
+    if (cached) {
+      console.log('🔄 Using cached audio metrics to prevent duplicate processing');
+      audioMetrics = JSON.parse(cached);
+    }
+  }
+  
+  // Only process if not cached
+  if (!audioMetrics && interviewData.audioAnalysis && interviewData.audioAnalysis.length > 0) {
     console.log('🎤 Processing audio analysis for Advanced Voice Analysis...');
     console.log('📊 Raw audio analysis data sample:', interviewData.audioAnalysis.slice(0, 2));
-    audioMetrics = processAudioMetrics(interviewData.audioAnalysis);
+    
+    // Defer heavy processing to prevent blocking
+    audioMetrics = await new Promise((resolve) => {
+      // Use setTimeout to yield control to the event loop
+      setTimeout(() => {
+        console.log('🎤 Starting deferred audio processing...');
+        const result = processAudioMetricsSync(interviewData.audioAnalysis);
+        console.log('🎤 Deferred audio processing complete');
+        resolve(result);
+      }, 0);
+    });
 
     if (audioMetrics) {
       console.log('✅ Audio metrics successfully generated:', {
@@ -135,10 +162,15 @@ export function generateBasicNonVerbalAnalysis(interviewData) {
         voiceQuality: audioMetrics.voiceQuality?.overall,
         confidence: Math.round(audioMetrics.confidence?.average * 100) + '%'
       });
+      
+      // Cache the result
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem(cacheKey, JSON.stringify(audioMetrics));
+      }
     } else {
       console.log('❌ Audio metrics generation returned null');
     }
-  } else {
+  } else if (!audioMetrics) {
     console.log('⚠️ No audio analysis data available - Advanced Voice Analysis will use defaults');
   }
 
@@ -167,15 +199,15 @@ export function generateBasicNonVerbalAnalysis(interviewData) {
 }
 
 // Process audio metrics to extract advanced voice analysis data
-export function processAudioMetrics(audioAnalysisData) {
+// Synchronous version of processAudioMetrics - used internally
+function processAudioMetricsSync(audioAnalysisData) {
   const allMetrics = audioAnalysisData.filter(a => a && a.metrics).flatMap(a => a.metrics);
 
   if (allMetrics.length === 0) {
-    console.log('🎤 No audio metrics available');
     return null;
   }
 
-  console.log('🎤 Processing audio metrics for Advanced Voice Analysis...');
+  console.log('🎤 Processing audio metrics for Advanced Voice Analysis (sync)...');
 
   // Helper functions for audio metrics
   const mode = (arr) => {
@@ -286,6 +318,21 @@ export function processAudioMetrics(audioAnalysisData) {
 
 // Comprehensive non-verbal report builder (fallback if global is not available)
 export function createComprehensiveNonVerbalReport(analyticsData, audioMetrics) {
+  // Add debug info about when this function is called
+  console.log('⚠️ createComprehensiveNonVerbalReport called at:', new Date().toISOString());
+  // console.trace('📍 Call stack trace'); // Disabled trace to prevent performance impact
+  
+  // Prevent duplicate comprehensive report generation
+  const reportCacheKey = `comprehensiveReport_${analyticsData?.totalWords || 'default'}_${audioMetrics?.pitch?.average || 'default'}`;
+  
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    const cached = window.sessionStorage.getItem(reportCacheKey);
+    if (cached) {
+      console.log('🔄 Using cached comprehensive report to prevent duplicate generation');
+      return JSON.parse(cached);
+    }
+  }
+  
   console.log('🔧 Using comprehensive non-verbal report builder');
   console.log('🎤 Received audio metrics:', {
     hasAudioMetrics: !!audioMetrics,
@@ -350,7 +397,7 @@ export function createComprehensiveNonVerbalReport(analyticsData, audioMetrics) 
     confidence: { average: 0.72, consistency: 0.68, trend: "stable" }
   };
 
-  return {
+  const report = {
     analytics: analyticsData,
     audioMetrics: enhancedAudioMetrics,
     confidenceScores: { voiceModulationScore,speechrate , fluency, overallConfidence },
@@ -404,4 +451,12 @@ export function createComprehensiveNonVerbalReport(analyticsData, audioMetrics) 
     },
     generatedAt: new Date().toISOString()
   };
+  
+  // Cache the result to prevent duplicate generation
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    window.sessionStorage.setItem(reportCacheKey, JSON.stringify(report));
+    console.log('💾 Comprehensive report cached for future use');
+  }
+  
+  return report;
 }

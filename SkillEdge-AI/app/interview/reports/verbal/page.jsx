@@ -132,19 +132,25 @@ export default function VerbalReport() {
           </button>
           
           <button
+            onClick={() => router.push("/interview/reports/non-verbal")}
+            className="px-6 py-3 bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl shadow-lg transition-all hover:scale-105 flex items-center"
+          >
+            View Non-Verbal Report
+          </button>
+          
+          <button
+            onClick={() => router.push("/interview/reports/overall-feedback")}
+            className="px-6 py-3 bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl shadow-lg transition-all hover:scale-105 flex items-center"
+          >
+            View Overall Report
+          </button>
+          
+          <button
             onClick={() => router.push("/interview/complete")}
             className="px-6 py-3 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-xl shadow-lg transition-all hover:scale-105 flex items-center"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
             Back to Results
-          </button>
-          
-          <button
-            onClick={() => router.push("/")}
-            className="px-6 py-3 bg-accent hover:bg-accent/90 text-accent-foreground rounded-xl shadow-lg transition-all hover:scale-105 hover:shadow-accent/25 flex items-center"
-          >
-            <Home className="w-5 h-5 mr-2" />
-            Home
           </button>
         </motion.div>
       </motion.div>

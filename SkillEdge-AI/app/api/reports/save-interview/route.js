@@ -1,22 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser, getAuth } from '@clerk/nextjs/server';
+import { getAuth } from '@clerk/nextjs/server';
 
 export async function POST(request) {
   try {
-    // Get user authentication from Clerk
+    // Timing: seconds since function start
+    const startMs = Date.now();
+    const ts = () => ((Date.now() - startMs) / 1000).toFixed(3);
+    const log = (msg, extra = {}) => console.log(`[save-interview] ${msg}`, { t: `${ts()}s`, ...extra });
+
+    // Get user authentication from Clerk (no fallback to currentUser for speed)
     let userId = null;
     try {
       const auth = getAuth(request);
       userId = auth?.userId;
-      if (!userId) {
-        const user = await currentUser();
-        userId = user?.id;
-      }
+      log('after getAuth', { hasUserId: !!userId });
     } catch (authError) {
-      console.error('Auth error:', authError.message);
+      console.error('[save-interview] Auth error (getAuth):', authError.message, { t: `${ts()}s` });
     }
     
     if (!userId) {
+      log('unauthorized (no userId from getAuth) - returning 401');
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -25,6 +28,7 @@ export async function POST(request) {
 
     // Parse the request body
     const body = await request.json();
+    log('parsed request body');
     const {
       interview_type,
       role,
@@ -81,7 +85,8 @@ export async function POST(request) {
     }
 
     // Call the Python backend API
-    const backendResponse = await fetch('http://localhost:8000/api/reports/save-interview', {
+    log('before backend fetch');
+    const backendResponse = await fetch('http://127.0.0.1:8000/api/reports/save-interview', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -89,6 +94,7 @@ export async function POST(request) {
       },
       body: JSON.stringify(reportData),
     });
+    log('after backend fetch', { status: backendResponse.status, statusText: backendResponse.statusText });
 
     if (!backendResponse.ok) {
       const errorData = await backendResponse.json();
@@ -103,12 +109,14 @@ export async function POST(request) {
     }
 
     const result = await backendResponse.json();
+    log('parsed backend response');
     
     console.log('✅ PYTHON BACKEND RESPONSE:', {
       status: backendResponse.status,
       statusText: backendResponse.statusText,
       data: result.data,
-      success: result.success
+      success: result.success,
+      t: `${ts()}s`
     });
     
     return NextResponse.json({

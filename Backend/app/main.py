@@ -34,7 +34,12 @@ else:
     print("Warning: GEMINI_API_KEY not found in environment")
 
 # CORS Configuration
-enabled_origins = os.getenv("FRONTEND_URL", "http://localhost:3000").split(",")
+enabled_origins = [
+    "http://localhost:3000", 
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001"
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=enabled_origins,
@@ -46,6 +51,17 @@ app.add_middleware(
 # Include routers
 app.include_router(profile.router)
 app.include_router(reports.router)
+
+# Health check endpoint for connection warming
+@app.get("/")
+async def health_check():
+    """Simple health check endpoint for connection pre-warming"""
+    return {"status": "ok", "message": "SkillEdge API is running"}
+
+@app.get("/ping")
+async def ping():
+    """Ultra-lightweight ping endpoint"""
+    return {"ping": "pong"}
 
 # Startup and shutdown events
 @app.on_event("startup")

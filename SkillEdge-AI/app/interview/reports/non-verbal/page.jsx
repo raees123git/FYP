@@ -90,8 +90,9 @@ export default function NonVerbalReport() {
   }, [router]);
 
   
-  // Function to create comprehensive non-verbal report data
+  // Optimized function to create comprehensive non-verbal report data
   const createComprehensiveNonVerbalReport = (analyticsData, audioMetrics) => {
+    console.log('🚀 Creating comprehensive non-verbal report...');
     // Calculate confidence scores
     const eyeContactScore = Math.min(100, Math.max(0, 100 - (analyticsData.fillerPercentage * 2)));
     const bodyLanguageScore = analyticsData.wordsPerMinute >= 120 && analyticsData.wordsPerMinute <= 160 ? 85 : 65;
@@ -428,14 +429,6 @@ export default function NonVerbalReport() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
           >
-            <button
-              onClick={downloadReport}
-              className="flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 rounded-xl shadow-lg transition-transform hover:scale-105"
-            >
-              <Download className="w-5 h-5 mr-2" />
-              Download Report
-            </button>
-            
             <ActionButtons analytics={analytics} audioMetrics={audioMetrics} />
           </motion.div>
         </motion.div>

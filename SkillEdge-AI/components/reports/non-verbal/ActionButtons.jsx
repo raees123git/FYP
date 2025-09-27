@@ -43,18 +43,6 @@ export default function ActionButtons({ analytics, audioMetrics }) {
         <ArrowLeft className="w-5 h-5 mr-2" />
         Back to Results
       </button>
-      
-      <button
-        onClick={() => {
-          localStorage.removeItem("interviewResults");
-          localStorage.removeItem("interviewReportData");
-          router.push("/");
-        }}
-        className="flex items-center px-6 py-3 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-xl shadow-lg transition-transform hover:scale-105"
-      >
-        <Home className="w-5 h-5 mr-2" />
-        Home
-      </button>
     </motion.div>
   );
 }

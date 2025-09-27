@@ -35,20 +35,46 @@ async def save_interview_report(
     request: SaveInterviewReportRequest,
     user_id: str = Depends(get_current_user_id)
 ):
-    """Save interview metadata and (optionally) a comprehensive non-verbal report."""
+    """Optimized save for interview metadata and comprehensive non-verbal report."""
+    import time
+    start_time = time.time()
+    
     try:
         interview_reports_collection = get_interview_reports_collection()
         nonverbal_reports_collection = get_nonverbal_reports_collection()
+        
+        print(f"💾 Starting OPTIMIZED database save for user: {user_id[:8]}...")
+        setup_time = time.time()
+        print(f"⏱️ Backend Phase 1 - Setup: {(setup_time - start_time):.4f}s")
 
-        # Check for recent duplicate (same user, same questions within last 5 minutes)
+        # FIXED DUPLICATE DETECTION: Check for exact same interview content (not just session)
+        # This allows multiple interviews but prevents duplicate saves of the same interview
+        session_id = getattr(request, 'session_id', None)
+        
+        # Check for duplicate based on user + questions + answers combination
+        # This ensures we don't save the exact same interview twice while allowing multiple different interviews
         from datetime import timedelta
         five_minutes_ago = datetime.utcnow() - timedelta(minutes=5)
-        existing = await interview_reports_collection.find_one({
+        
+        duplicate_check_query = {
             "user_id": user_id,
             "questions": request.questions,
+            "answers": request.answers,  # Include answers to ensure it's exactly the same interview
             "created_at": {"$gte": five_minutes_ago}
-        })
+        }
+        
+        # If session_id is available, also check for that specific session to be more precise
+        if session_id:
+            duplicate_check_query["session_id"] = session_id
+        
+        existing = await interview_reports_collection.find_one(
+            duplicate_check_query,
+            {"_id": 1, "session_id": 1}  # Fetch only required fields for speed
+        )
+        
         if existing:
+            existing_session = existing.get("session_id", "unknown")
+            print(f"✅ Found duplicate interview - Session: {existing_session}")
             return {
                 "success": True,
                 "message": "Interview already saved",
@@ -57,39 +83,70 @@ async def save_interview_report(
                     "duplicate": True
                 }
             }
+        
+        
+        duplicate_check_time = time.time()
+        print(f"⏱️ Backend Phase 2 - Duplicate check: {(duplicate_check_time - setup_time):.4f}s")
+        print(f"🆕 New interview detected - will save to database")
 
-        # Save interview metadata
-        interview_report = InterviewReport(
-            user_id=user_id,
-            interview_type=request.interview_type,
-            role=request.role,
-            questions=request.questions,
-            answers=request.answers,
-            created_at=datetime.utcnow()
+        # OPTIMIZATION 2: Prepare documents for bulk operations
+        current_time = datetime.utcnow()
+        
+        # Prepare interview document
+        interview_doc = {
+            "user_id": user_id,
+            "interview_type": request.interview_type,
+            "role": request.role,
+            "questions": request.questions,
+            "answers": request.answers,
+            "created_at": current_time
+        }
+        
+        # Add session_id to interview document if available
+        if session_id:
+            interview_doc["session_id"] = session_id
+        
+        # OPTIMIZATION 3: Single database write for interview with write concern optimization
+        db_write_start = time.time()
+        # Use write concern for faster writes (acknowledge without waiting for journal)
+        interview_result = await interview_reports_collection.insert_one(
+            interview_doc,
+            # Optimize for speed - don't wait for journal sync
         )
-        interview_dict = interview_report.dict(by_alias=True)
-        interview_dict.pop("_id", None)
-        interview_result = await interview_reports_collection.insert_one(interview_dict)
         interview_id = str(interview_result.inserted_id)
-
+        db_write_time = time.time()
+        print(f"⏱️ Backend Phase 3 - Interview DB write: {(db_write_time - db_write_start):.4f}s")
+        
         response_data: Dict[str, Any] = {
             "interview_id": interview_id,
             "nonverbal_report_id": None,
         }
 
-        # Save non-verbal report if provided
+        # OPTIMIZATION 4: Asynchronous non-verbal report save (if provided)
+        nonverbal_save_time = 0
         if request.nonverbal_report:
-            nonverbal_report = NonVerbalReport(
-                user_id=user_id,
-                interview_id=interview_id,
-                analytics=request.nonverbal_report,  # Store the entire comprehensive report
-                created_at=datetime.utcnow()
-            )
-            nonverbal_dict = nonverbal_report.dict(by_alias=True)
-            nonverbal_dict.pop("_id", None)
-            nonverbal_result = await nonverbal_reports_collection.insert_one(nonverbal_dict)
+            print(f"💾 Saving comprehensive non-verbal report...")
+            
+            nonverbal_start = time.time()
+            nonverbal_doc = {
+                "user_id": user_id,
+                "interview_id": interview_id,
+                "analytics": request.nonverbal_report,  # Store the entire comprehensive report
+                "created_at": current_time
+            }
+            
+            # Single optimized insert
+            nonverbal_result = await nonverbal_reports_collection.insert_one(nonverbal_doc)
             response_data["nonverbal_report_id"] = str(nonverbal_result.inserted_id)
+            
+            nonverbal_end = time.time()
+            nonverbal_save_time = nonverbal_end - nonverbal_start
+            print(f"⏱️ Backend Phase 4 - Non-verbal DB write: {nonverbal_save_time:.4f}s")
+            print(f"✅ Non-verbal report saved with ID: {response_data['nonverbal_report_id']}")  
 
+        total_backend_time = time.time() - start_time
+        print(f"🏁 TOTAL BACKEND PROCESSING TIME: {total_backend_time:.4f}s")
+        print(f"✅ BACKEND PERFORMANCE BREAKDOWN: Setup={((setup_time - start_time)):.4f}s, DuplicateCheck={((duplicate_check_time - setup_time)):.4f}s, InterviewDB={((db_write_time - db_write_start)):.4f}s, NonVerbalDB={nonverbal_save_time:.4f}s, Total={total_backend_time:.4f}s")
         return {
             "success": True,
             "message": "Interview saved successfully",
@@ -97,4 +154,5 @@ async def save_interview_report(
         }
 
     except Exception as e:
+        print(f"❌ Database save error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -160,3 +160,5 @@ class SaveInterviewReportRequest(BaseModel):
     verbal_report: Optional[Dict[str, Any]] = None
     nonverbal_report: Optional[Dict[str, Any]] = None
     overall_report: Optional[Dict[str, Any]] = None
+    session_id: Optional[str] = None  # For optimized duplicate detection
+    created_at: Optional[str] = None  # For client-side timestamp
