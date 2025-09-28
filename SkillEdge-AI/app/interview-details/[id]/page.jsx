@@ -52,21 +52,7 @@ export default function InterviewDetailsPage() {
       setInterview(data.interview);
       setVerbalReport(data.verbal_report);
       setNonVerbalReport(data.nonverbal_report);
-      
-      // Calculate overall report from verbal and non-verbal
-      if (data.verbal_report && data.nonverbal_report) {
-        const overallScore = (
-          (data.verbal_report.overall_score + data.nonverbal_report.overall_confidence) / 2
-        ).toFixed(1);
-        
-        setOverallReport({
-          overall_score: overallScore,
-          verbal_score: data.verbal_report.overall_score,
-          nonverbal_score: data.nonverbal_report.overall_confidence,
-          summary: `Combined assessment based on verbal and non-verbal analysis.`,
-          interview_readiness: overallScore >= 80 ? "Excellent" : overallScore >= 60 ? "Good" : "Needs Improvement"
-        });
-      }
+      setOverallReport(data.overall_report);  // Use the stored overall report directly
     } catch (error) {
       console.error("Error fetching interview details:", error);
       toast.error("Failed to load interview details");
@@ -224,12 +210,18 @@ export default function InterviewDetailsPage() {
             >
               <div className="flex items-center justify-between mb-4">
                 <Eye className="w-8 h-8 text-green-400" />
-                <span className={`text-2xl font-bold ${getScoreColor(nonVerbalReport.overall_confidence)}`}>
-                  {nonVerbalReport.overall_confidence}%
-                </span>
+                <div className="text-right">
+                  <span className="text-2xl font-bold text-green-400">
+                    {nonVerbalReport.analytics?.wordsPerMinute || 0}
+                  </span>
+                  <span className="text-sm text-gray-400 block">WPM</span>
+                </div>
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">Non-Verbal Report</h3>
-              <p className="text-gray-400 text-sm mb-4">{nonVerbalReport.feedback?.substring(0, 100)}...</p>
+              <p className="text-gray-400 text-sm mb-4">
+                Speech Rate: {nonVerbalReport.analytics?.speechRate || 'N/A'}, 
+                Filler Words: {nonVerbalReport.analytics?.fillerPercentage || 0}%
+              </p>
               <button className="text-green-400 text-sm hover:text-green-300 transition-colors">
                 View Full Report →
               </button>
@@ -401,25 +393,55 @@ function ReportModal({ type, report, onClose }) {
 
         {/* Modal Content */}
         <div className="p-6 space-y-6">
-          {/* Overall Score */}
+          {/* Overall Score / Summary */}
           <div className="bg-gray-800/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Overall Score</h3>
-            <div className="flex items-center gap-6">
-              <div className="text-5xl font-bold text-white">
-                {report.overall_score || report.overall_confidence}%
-              </div>
-              <div className="flex-1">
-                <div className="bg-gray-700 rounded-full h-4 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000"
-                    style={{ width: `${report.overall_score || report.overall_confidence}%` }}
-                  />
+            <h3 className="text-lg font-semibold text-white mb-4">
+              {type === "verbal" ? "Overall Score" : 
+               type === "nonverbal" ? "Speech Analysis Summary" : 
+               "Overall Performance"}
+            </h3>
+            {type === "nonverbal" && report.analytics ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <span className="text-sm text-gray-400">Speech Rate</span>
+                    <p className="text-xl font-bold text-white">{report.analytics.speechRate}</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <span className="text-sm text-gray-400">Words/Min</span>
+                    <p className="text-xl font-bold text-white">{report.analytics.wordsPerMinute}</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <span className="text-sm text-gray-400">Filler Words</span>
+                    <p className="text-xl font-bold text-white">{report.analytics.fillerPercentage}%</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <span className="text-sm text-gray-400">Pause Pattern</span>
+                    <p className="text-xl font-bold text-white">{report.analytics.pauseAnalysis?.pattern}</p>
+                  </div>
                 </div>
-                <p className="text-gray-400 text-sm mt-2">
-                  {report.summary || report.feedback}
+                <p className="text-gray-400 text-sm">
+                  {report.analytics.speechRateDescription}
                 </p>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-6">
+                <div className="text-5xl font-bold text-white">
+                  {report.overall_score}%
+                </div>
+                <div className="flex-1">
+                  <div className="bg-gray-700 rounded-full h-4 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000"
+                      style={{ width: `${report.overall_score}%` }}
+                    />
+                  </div>
+                  <p className="text-gray-400 text-sm mt-2">
+                    {report.summary}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Metrics for Verbal Report */}
@@ -450,32 +472,37 @@ function ReportModal({ type, report, onClose }) {
           )}
 
           {/* Metrics for Non-Verbal Report */}
-          {type === "nonverbal" && (
-            <div className="bg-gray-800/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Non-Verbal Metrics</h3>
-              <div className="space-y-4">
-                {[
-                  { label: "Eye Contact", value: report.eye_contact_score },
-                  { label: "Body Language", value: report.body_language_score },
-                  { label: "Voice Modulation", value: report.voice_modulation_score },
-                  { label: "Facial Expressions", value: report.facial_expressions_score },
-                ].map((metric) => (
-                  <div key={metric.label}>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-gray-300">{metric.label}</span>
-                      <span className="text-white font-semibold">{metric.value}%</span>
-                    </div>
-                    <div className="bg-gray-700 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-1000"
-                        style={{ width: `${metric.value}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+{type === "nonverbal" && (
+  /* Speech Analytics if available */
+  report.analytics && (
+    <div className="bg-gray-800/50 rounded-xl p-6">
+      <h3 className="text-lg font-semibold text-white mb-4">Speech Analytics</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-gray-900/50 rounded-lg p-4">
+          <span className="text-gray-400 text-sm">Words Per Minute</span>
+          <p className="text-2xl font-bold text-white">{report.analytics.wordsPerMinute}</p>
+          <p className="text-sm text-gray-400 mt-1">{report.analytics.speechRate}</p>
+        </div>
+        <div className="bg-gray-900/50 rounded-lg p-4">
+          <span className="text-gray-400 text-sm">Filler Words</span>
+          <p className="text-2xl font-bold text-white">{report.analytics.fillerPercentage}%</p>
+          <p className="text-sm text-gray-400 mt-1">{report.analytics.fillerWords} total</p>
+        </div>
+        <div className="bg-gray-900/50 rounded-lg p-4">
+          <span className="text-gray-400 text-sm">Pause Pattern</span>
+          <p className="text-lg font-bold text-white">{report.analytics.pauseAnalysis?.pattern}</p>
+          <p className="text-sm text-gray-400 mt-1">{report.analytics.pauseAnalysis?.description}</p>
+        </div>
+        <div className="bg-gray-900/50 rounded-lg p-4">
+          <span className="text-gray-400 text-sm">Total Speaking Time</span>
+          <p className="text-2xl font-bold text-white">{report.analytics.totalTime}s</p>
+          <p className="text-sm text-gray-400 mt-1">{report.analytics.questionCount} questions</p>
+        </div>
+      </div>
+    </div>
+  )
+)}
+
 
           {/* Strengths and Improvements */}
           {report.strengths && report.improvements && (
@@ -513,48 +540,92 @@ function ReportModal({ type, report, onClose }) {
           )}
 
           {/* Overall Report Specific */}
-          {type === "overall" && (
-            <div className="bg-gray-800/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Score Breakdown</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-900/50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-gray-400">Verbal Score</span>
-                    <span className="text-2xl font-bold text-blue-400">{report.verbal_score}%</span>
+          {type === "overall" && report && (
+            <>
+              <div className="bg-gray-800/50 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Score Breakdown</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-900/50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-400">Verbal Score</span>
+                      <span className="text-2xl font-bold text-blue-400">{report.verbal_score}%</span>
+                    </div>
+                    <div className="bg-gray-700 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 transition-all duration-1000"
+                        style={{ width: `${report.verbal_score}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="bg-gray-700 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 transition-all duration-1000"
-                      style={{ width: `${report.verbal_score}%` }}
-                    />
+                  <div className="bg-gray-900/50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-400">Non-Verbal Score</span>
+                      <span className="text-2xl font-bold text-green-400">{report.nonverbal_score}%</span>
+                    </div>
+                    <div className="bg-gray-700 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full bg-green-500 transition-all duration-1000"
+                        style={{ width: `${report.nonverbal_score}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="bg-gray-900/50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-gray-400">Non-Verbal Score</span>
-                    <span className="text-2xl font-bold text-green-400">{report.nonverbal_score}%</span>
-                  </div>
-                  <div className="bg-gray-700 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 transition-all duration-1000"
-                      style={{ width: `${report.nonverbal_score}%` }}
-                    />
-                  </div>
+                <div className="mt-4 p-4 bg-gray-900/50 rounded-lg">
+                  <p className="text-gray-300">
+                    <span className="font-semibold text-white">Interview Readiness: </span>
+                    <span className={`font-semibold ${
+                      report.interview_readiness === "excellent" ? "text-green-400" :
+                      report.interview_readiness === "ready" ? "text-yellow-400" :
+                      report.interview_readiness === "needs improvement" ? "text-orange-400" :
+                      "text-red-400"
+                    }`}>
+                      {report.interview_readiness}
+                    </span>
+                  </p>
                 </div>
               </div>
-              <div className="mt-4 p-4 bg-gray-900/50 rounded-lg">
-                <p className="text-gray-300">
-                  <span className="font-semibold text-white">Interview Readiness: </span>
-                  <span className={`font-semibold ${
-                    report.interview_readiness === "Excellent" ? "text-green-400" :
-                    report.interview_readiness === "Good" ? "text-yellow-400" :
-                    "text-red-400"
-                  }`}>
-                    {report.interview_readiness}
-                  </span>
-                </p>
-              </div>
-            </div>
+              
+              {/* Correlations and Insights if available */}
+              {report.correlations && (
+                <div className="bg-gray-800/50 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">Performance Correlations</h3>
+                  {report.correlations.overallCorrelation && (
+                    <div className="mb-4 p-4 bg-gray-900/50 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-400">Alignment Strength</span>
+                        <span className="text-xl font-bold text-white">
+                          {report.correlations.overallCorrelation.correlationStrength}%
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-400">
+                        {report.correlations.overallCorrelation.description}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Action Items if available */}
+              {report.action_items && report.action_items.length > 0 && (
+                <div className="bg-gray-800/50 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">Recommended Actions</h3>
+                  <div className="space-y-3">
+                    {report.action_items.map((item, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 bg-gray-900/50 rounded-lg">
+                        <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                          item.priority === "high" ? "bg-red-500/20 text-red-400" :
+                          item.priority === "medium" ? "bg-yellow-500/20 text-yellow-400" :
+                          "bg-blue-500/20 text-blue-400"
+                        }`}>
+                          {item.priority}
+                        </span>
+                        <span className="text-gray-300 flex-1">{item.item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </motion.div>

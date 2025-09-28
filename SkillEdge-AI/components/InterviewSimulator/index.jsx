@@ -317,9 +317,27 @@ export default function InterviewSimulatorWithVoice() {
         </h1>
         <button
           onClick={() => {
-            // Clear any previous interview data
+            // Clear any previous interview data to prevent stale reports
             localStorage.removeItem("verbalAnalysisReport");
             localStorage.removeItem("interviewReportData");
+            localStorage.removeItem("nonVerbalAnalysis");
+            localStorage.removeItem("lastInterviewId");
+            
+            // Clear session-specific report data from previous interviews
+            // Get all localStorage keys and remove any interview-related ones
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const key = localStorage.key(i);
+              if (key && (
+                key.startsWith("verbalAnalysisReport_") ||
+                key.startsWith("nonVerbalAnalysis_") ||
+                key.startsWith("nonVerbalReportSaved_") ||
+                key.startsWith("nonVerbalDatabaseSaved_") ||
+                key.startsWith("savedInterview_")
+              )) {
+                localStorage.removeItem(key);
+              }
+            }
+            
             setStarted(true);
           }}
           className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg transition-all hover:scale-105 hover:shadow-primary/25 w-full sm:w-auto max-w-xs"

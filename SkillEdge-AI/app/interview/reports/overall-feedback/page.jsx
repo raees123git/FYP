@@ -314,14 +314,6 @@ export default function OverallFeedbackReport() {
             <ArrowLeft className="w-5 h-5" />
             Back to Results
           </button>
-          
-          <button
-            onClick={() => router.push("/")}
-            className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg transition-all hover:scale-105 hover:shadow-primary/25 flex items-center gap-2"
-          >
-            <Home className="w-5 h-5" />
-            Home
-          </button>
         </motion.div>
       </motion.div>
     </div>
