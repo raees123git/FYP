@@ -2,20 +2,37 @@
 
 import { motion } from "framer-motion";
 import { AlertCircle, CheckCircle, Lightbulb, TrendingUp } from "lucide-react";
-import { generateInsights } from "./utils";
+// REMOVED: import { generateInsights } from "./utils"; - now using official overall analysis data
 import { useEffect, useState } from "react";
 
-const InsightsPanel = ({ correlations, verbalData, nonVerbalData }) => {
+const InsightsPanel = ({ correlations, verbalData, nonVerbalData, summaryText }) => {
+  // SIMPLIFIED: Use insights from official overall analysis data stored in localStorage
   const [insights, setInsights] = useState([]);
 
   useEffect(() => {
-    const fetchInsights = async () => {
-      const generatedInsights = await generateInsights(correlations, verbalData, nonVerbalData);
-      setInsights(generatedInsights);
-    };
-    
-    if (correlations) {
-      fetchInsights();
+    // Get insights from the official overall analysis
+    const storedOverallAnalysis = localStorage.getItem("overallAnalysis");
+    if (storedOverallAnalysis) {
+      try {
+        const overallData = JSON.parse(storedOverallAnalysis);
+        const officialInsights = [
+          ...(overallData.insights?.strengths || []).map(strength => ({
+            type: "positive",
+            title: "Strength Identified",
+            message: strength,
+            impact: "positive"
+          })),
+          ...(overallData.insights?.areas_for_improvement || []).map(improvement => ({
+            type: "opportunity", 
+            title: "Improvement Opportunity",
+            message: improvement,
+            impact: "actionable"
+          }))
+        ];
+        setInsights(officialInsights);
+      } catch (error) {
+        console.error("Error parsing overall analysis for insights:", error);
+      }
     }
   }, [correlations, verbalData, nonVerbalData]);
 
@@ -83,7 +100,9 @@ const InsightsPanel = ({ correlations, verbalData, nonVerbalData }) => {
           <h3 className="font-semibold">AI Analysis Summary</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          {insights.some(i => i.type === "critical") ? (
+          {summaryText ? (
+            summaryText
+          ) : insights.some(i => i.type === "critical") ? (
             <>
               <span className="font-semibold text-destructive">Critical areas require immediate attention.</span> 
               {" "}Your non-verbal communication patterns are significantly impacting your overall performance. 

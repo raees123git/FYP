@@ -14,11 +14,7 @@ import {
   PerformanceCorrelationChart,
   InsightsPanel,
   PrioritizedActionItems,
-  ActionRecommendations,
-  correlateVerbalNonVerbal,
-  generateActionItems,
-  formatCorrelationData,
-  generateOverallReportData
+  ActionRecommendations
 } from "@/components/reports/overall";
 
 export default function OverallFeedbackReport() {
@@ -35,46 +31,97 @@ export default function OverallFeedbackReport() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get verbal analysis data
+        // FIXED: Use the same overall analysis data that gets saved to database
+        // This ensures UI displays the same values that are stored
+        const storedOverallAnalysis = localStorage.getItem("overallAnalysis");
         const storedVerbalAnalysis = localStorage.getItem("verbalAnalysisReport");
-        if (!storedVerbalAnalysis) {
-          setError("Verbal analysis data not found. Please complete the verbal report first.");
-          setLoading(false);
-          return;
-        }
-
-        // Get interview results for non-verbal data
-        const storedInterviewResults = localStorage.getItem("interviewResults");
-        if (!storedInterviewResults) {
-          setError("Interview data not found. Please complete an interview first.");
-          setLoading(false);
-          return;
-        }
-
-        const parsedVerbalData = JSON.parse(storedVerbalAnalysis);
-        const parsedInterviewResults = JSON.parse(storedInterviewResults);
+        const storedNonVerbalAnalysis = localStorage.getItem("nonVerbalAnalysis");
         
-        // Process non-verbal data from interview results
-        const processedNonVerbalData = processNonVerbalData(parsedInterviewResults);
+        if (!storedOverallAnalysis || !storedVerbalAnalysis) {
+          setError("Analysis data not found. Please complete the interview analysis first.");
+          setLoading(false);
+          return;
+        }
+
+        const parsedOverallData = JSON.parse(storedOverallAnalysis);
+        const parsedVerbalData = JSON.parse(storedVerbalAnalysis);
+        const parsedNonVerbalData = storedNonVerbalAnalysis ? JSON.parse(storedNonVerbalAnalysis) : null;
+        
+        console.log('🎯 Overall Feedback Report using SAME data as database save:', {
+          verbal_score: parsedOverallData.verbal_score,
+          nonverbal_score: parsedOverallData.nonverbal_score,
+          overall_score: parsedOverallData.overall_score,
+          correlation_strength: parsedOverallData.correlations?.overallCorrelation?.correlationStrength,
+          detailed_analyses: {
+            speechRate: parsedOverallData.correlations?.speechRateImpact,
+            fillerWords: parsedOverallData.correlations?.fillerWordsImpact,
+            pausePattern: parsedOverallData.correlations?.pausePatternImpact
+          }
+        });
         
         setVerbalData(parsedVerbalData);
-        setNonVerbalData(processedNonVerbalData);
+        setNonVerbalData(parsedNonVerbalData);
         
-        // Generate correlations between verbal and non-verbal data
-        const generatedCorrelations = correlateVerbalNonVerbal(parsedVerbalData, processedNonVerbalData);
-        setCorrelations(generatedCorrelations);
+        // Use the official overall analysis data instead of recalculating
+        setCorrelations(parsedOverallData.correlations);
+        setActionItems(parsedOverallData.action_items || []);
         
-        // Generate prioritized action items
-        const generatedActionItems = generateActionItems(generatedCorrelations);
-        setActionItems(generatedActionItems);
-        
-        // Format data for visualization
-        const formattedData = formatCorrelationData(generatedCorrelations);
+        // Enhanced chart data with detailed correlation analyses
+        const formattedData = [
+          { 
+            name: "Speech Rate", 
+            metric: "Speech Rate Impact",
+            value: Math.abs(parsedOverallData.correlations?.speechRateImpact?.score || 0), 
+            impact: Math.abs(parsedOverallData.correlations?.speechRateImpact?.score || 0),
+            type: (parsedOverallData.correlations?.speechRateImpact?.score || 0) >= 0 ? "positive" : "negative",
+            description: parsedOverallData.correlations?.speechRateImpact?.impact || "Speech rate analysis"
+          },
+          { 
+            name: "Filler Words", 
+            metric: "Filler Words Impact",
+            value: Math.abs(parsedOverallData.correlations?.fillerWordsImpact?.score || 0), 
+            impact: Math.abs(parsedOverallData.correlations?.fillerWordsImpact?.score || 0),
+            type: (parsedOverallData.correlations?.fillerWordsImpact?.score || 0) >= 0 ? "positive" : "negative",
+            description: parsedOverallData.correlations?.fillerWordsImpact?.impact || "Filler words analysis"
+          },
+          { 
+            name: "Pause Pattern", 
+            metric: "Pause Pattern Impact",
+            value: Math.abs(parsedOverallData.correlations?.pausePatternImpact?.score || 0), 
+            impact: Math.abs(parsedOverallData.correlations?.pausePatternImpact?.score || 0),
+            type: (parsedOverallData.correlations?.pausePatternImpact?.score || 0) >= 0 ? "positive" : "negative",
+            description: parsedOverallData.correlations?.pausePatternImpact?.impact || "Pause pattern analysis"
+          },
+          { 
+            name: "Confidence", 
+            metric: "Confidence Alignment",
+            value: Math.abs(parsedOverallData.correlations?.confidenceCorrelation?.score || 0), 
+            impact: Math.abs(parsedOverallData.correlations?.confidenceCorrelation?.score || 0),
+            type: (parsedOverallData.correlations?.confidenceCorrelation?.score || 0) >= 0 ? "positive" : "negative",
+            description: parsedOverallData.correlations?.confidenceCorrelation?.impact || "Confidence correlation analysis"
+          },
+          { 
+            name: "Fluency", 
+            metric: "Fluency Analysis",
+            value: Math.abs(parsedOverallData.correlations?.fluencyImpact?.score || 0), 
+            impact: Math.abs(parsedOverallData.correlations?.fluencyImpact?.score || 0),
+            type: (parsedOverallData.correlations?.fluencyImpact?.score || 0) >= 0 ? "positive" : "negative",
+            description: parsedOverallData.correlations?.fluencyImpact?.impact || "Fluency analysis"
+          }
+        ];
         setChartData(formattedData);
         
-        // Generate overall report data
-        const overallReport = generateOverallReportData(parsedVerbalData, processedNonVerbalData, generatedCorrelations, generatedActionItems);
-        setReportData(overallReport);
+        // Create report data from the official overall analysis
+        const reportData = {
+          timestamp: new Date().toISOString(),
+          summary: {
+            nonVerbalScore: parsedOverallData.nonverbal_score, // Use the SAME score that gets saved to database
+            readinessLevel: parsedOverallData.interview_readiness,
+            overallScore: parsedOverallData.overall_score,
+            summaryText: parsedOverallData.summary // Add the actual summary text from database
+          }
+        };
+        setReportData(reportData);
         
         setLoading(false);
       } catch (error) {
@@ -87,7 +134,10 @@ export default function OverallFeedbackReport() {
     fetchData();
   }, []);
 
-  // Process non-verbal data from interview results
+  // REMOVED: processNonVerbalData function - no longer needed as we use the official overallAnalysis data
+  // This eliminates the duplicate calculation system that was causing score mismatches
+  
+  // Legacy function kept for backward compatibility (not used in main flow)
   const processNonVerbalData = (interviewResults) => {
     const { answers, timings = [], audioAnalysis = [] } = interviewResults;
     
@@ -245,10 +295,11 @@ export default function OverallFeedbackReport() {
         {/* Header */}
         <ReportHeader 
           timestamp={reportData?.timestamp} 
-          readiness={reportData?.summary?.readinessLevel} 
+          readiness={reportData?.summary?.readinessLevel}
+          summaryText={reportData?.summary?.summaryText}
         />
 
-        {/* Overall Score Comparison */}
+        {/* Overall Score Comparison - Using SAME data as database save */}
         <OverallScoreComparison
           verbalScore={verbalData?.overall_score || 0}
           nonVerbalScore={reportData?.summary?.nonVerbalScore || 0}
@@ -260,6 +311,7 @@ export default function OverallFeedbackReport() {
           correlations={correlations}
           verbalData={verbalData}
           nonVerbalData={nonVerbalData}
+          summaryText={reportData?.summary?.summaryText}
         />
 
         {/* Correlation Analysis */}

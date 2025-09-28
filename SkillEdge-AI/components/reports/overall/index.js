@@ -9,5 +9,5 @@ export { default as ActionRecommendations } from './ActionRecommendations';
 export { default as OverallScoreComparison } from './OverallScoreComparison';
 export { default as InsightsPanel } from './InsightsPanel';
 
-// Export utility functions
-export * from './utils';
+// REMOVED: Duplicate utility functions - now using single official system from lib/overall.js
+// export * from './utils';

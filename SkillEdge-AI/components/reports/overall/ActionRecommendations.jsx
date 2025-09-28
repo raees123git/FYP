@@ -2,15 +2,37 @@
 
 import { motion } from "framer-motion";
 import { BookOpen, Lightbulb, TrendingUp, Users, Award } from "lucide-react";
-import { generateOverallReportData, downloadOverallReport } from "./utils";
+// REMOVED: import { generateOverallReportData, downloadOverallReport } from "./utils"; - now using official overall analysis data
 
 const ActionRecommendations = ({ verbalData, nonVerbalData, correlations, actionItems }) => {
-  const reportData = generateOverallReportData(verbalData, nonVerbalData, correlations, actionItems);
+  // SIMPLIFIED: Use official overall analysis data
+  const storedOverallAnalysis = localStorage.getItem("overallAnalysis");
+  const overallData = storedOverallAnalysis ? JSON.parse(storedOverallAnalysis) : null;
   
-  if (!reportData || !reportData.recommendations) return null;
+  if (!actionItems || actionItems.length === 0) return null;
 
   const handleDownloadReport = () => {
-    downloadOverallReport(reportData, verbalData, nonVerbalData, correlations, actionItems);
+    // Simple download functionality 
+    const reportContent = `
+Overall Performance Analysis
+===========================
+Verbal Score: ${overallData?.verbal_score || 0}
+Non-Verbal Score: ${overallData?.nonverbal_score || 0}
+Overall Score: ${overallData?.overall_score || 0}
+
+Action Items:
+${actionItems.map(item => `- ${item.item} (Priority: ${item.priority})`).join('\n')}
+
+Generated: ${new Date().toLocaleString()}
+    `;
+    
+    const blob = new Blob([reportContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'overall-analysis-report.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const getIcon = (priority) => {
@@ -31,7 +53,7 @@ const ActionRecommendations = ({ verbalData, nonVerbalData, correlations, action
       </h2>
 
       <div className="grid gap-4 mb-6">
-        {reportData.recommendations.map((rec, index) => (
+        {actionItems.map((item, index) => (
           <motion.div
             key={index}
             className="p-6 bg-card rounded-xl border border-border hover:border-primary/30 transition-all"
@@ -40,23 +62,25 @@ const ActionRecommendations = ({ verbalData, nonVerbalData, correlations, action
             transition={{ delay: 0.1 * index }}
           >
             <div className="flex items-start gap-4">
-              {getIcon(rec.priority)}
+              {getIcon(item.priority)}
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold text-lg">{rec.title}</h3>
+                  <h3 className="font-semibold text-lg">{item.item}</h3>
                   <span className={`px-2 py-1 text-xs rounded-full ${
-                    rec.priority === "immediate" ? "bg-destructive/20 text-destructive" :
-                    rec.priority === "high" ? "bg-accent/20 text-accent" :
+                    item.priority === "immediate" ? "bg-destructive/20 text-destructive" :
+                    item.priority === "high" ? "bg-accent/20 text-accent" :
                     "bg-primary/20 text-primary"
                   }`}>
-                    {rec.priority.toUpperCase()}
+                    {item.priority.toUpperCase()}
                   </span>
                 </div>
-                <p className="text-sm text-muted-foreground mb-3">{rec.description}</p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Category: {item.category || "General"}
+                </p>
                 <div className="flex items-center gap-2 text-xs">
                   <Award className="w-3 h-3 text-green-500" />
                   <span className="text-green-500 font-semibold">
-                    Expected Improvement: {rec.expectedImprovement}
+                    Focus Area: {item.category}
                   </span>
                 </div>
               </div>
@@ -65,8 +89,8 @@ const ActionRecommendations = ({ verbalData, nonVerbalData, correlations, action
         ))}
       </div>
 
-      {/* Practice Exercises Section */}
-      {reportData.exercises && reportData.exercises.length > 0 && (
+      {/* Simplified Practice Section */}
+      {actionItems.length > 0 && (
         <motion.div
           className="mb-6 p-6 bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl border border-primary/20"
           initial={{ opacity: 0 }}
@@ -75,22 +99,21 @@ const ActionRecommendations = ({ verbalData, nonVerbalData, correlations, action
         >
           <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />
-            Daily Practice Routine
+            Focus Areas
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {reportData.exercises.slice(0, 6).map((exercise, index) => (
+          <div className="grid grid-cols-1 gap-3">
+            {actionItems.map((item, index) => (
               <div key={index} className="p-3 bg-card rounded-lg">
                 <div className="flex items-start justify-between mb-1">
-                  <p className="text-sm font-medium">{exercise.name}</p>
+                  <p className="text-sm font-medium">{item.item}</p>
                   <span className="text-xs px-2 py-1 bg-secondary rounded-full">
-                    {exercise.duration}
+                    {item.priority}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   <span className="px-2 py-0.5 bg-secondary rounded-full">
-                    {exercise.category}
+                    {item.category}
                   </span>
-                  <span>{exercise.frequency}</span>
                 </div>
               </div>
             ))}

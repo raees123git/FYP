@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { FileText, Calendar, Target } from "lucide-react";
 
-const ReportHeader = ({ timestamp, readiness }) => {
+const ReportHeader = ({ timestamp, readiness, summaryText }) => {
   return (
     <motion.div
       className="mb-8 text-center"
@@ -36,7 +36,19 @@ const ReportHeader = ({ timestamp, readiness }) => {
         )}
       </div>
       
-      <div className="mt-6 max-w-3xl mx-auto">
+      <div className="mt-6 max-w-3xl mx-auto space-y-4">
+        {summaryText && (
+          <div className="p-4 bg-gradient-to-r from-accent/10 to-primary/10 rounded-lg border border-accent/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="w-4 h-4 text-accent" />
+              <h3 className="font-semibold text-accent">Performance Summary</h3>
+            </div>
+            <p className="text-sm text-foreground font-medium">
+              {summaryText}
+            </p>
+          </div>
+        )}
+        
         <div className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
           <p className="text-sm text-muted-foreground">
             This report analyzes the <span className="font-semibold text-primary">causal relationships</span> between 

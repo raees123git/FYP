@@ -9,15 +9,15 @@ const PrioritizedActionItems = ({ actionItems }) => {
 
   if (!actionItems || actionItems.length === 0) return null;
 
-  const getImpactIcon = (impact) => {
-    if (impact === "Critical") return <AlertTriangle className="w-4 h-4 text-destructive" />;
-    if (impact === "High") return <Zap className="w-4 h-4 text-accent" />;
+  const getImpactIcon = (priority) => {
+    if (priority === "high") return <AlertTriangle className="w-4 h-4 text-destructive" />;
+    if (priority === "medium") return <Zap className="w-4 h-4 text-accent" />;
     return <Target className="w-4 h-4 text-primary" />;
   };
 
-  const getImpactColor = (impact) => {
-    if (impact === "Critical") return "border-destructive/50 bg-destructive/5";
-    if (impact === "High") return "border-accent/50 bg-accent/5";
+  const getImpactColor = (priority) => {
+    if (priority === "high") return "border-destructive/50 bg-destructive/5";
+    if (priority === "medium") return "border-accent/50 bg-accent/5";
     return "border-primary/30 bg-primary/5";
   };
 
@@ -35,15 +35,15 @@ const PrioritizedActionItems = ({ actionItems }) => {
       <div className="space-y-4">
         {actionItems.map((item, index) => (
           <motion.div
-            key={item.id}
-            className={`rounded-xl border ${getImpactColor(item.impact)} overflow-hidden transition-all`}
+            key={`action-${index}-${item.item?.substring(0, 20) || index}`}
+            className={`rounded-xl border ${getImpactColor(item.priority)} overflow-hidden transition-all`}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 * index }}
           >
             <div
               className="p-4 cursor-pointer hover:bg-card/50 transition-colors"
-              onClick={() => setExpandedItem(expandedItem === item.id ? null : item.id)}
+              onClick={() => setExpandedItem(expandedItem === index ? null : index)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -51,27 +51,27 @@ const PrioritizedActionItems = ({ actionItems }) => {
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-card border border-border">
                       <span className="text-sm font-bold">{index + 1}</span>
                     </div>
-                    {getImpactIcon(item.impact)}
+                    {getImpactIcon(item.priority)}
                     <span className="px-2 py-1 text-xs bg-secondary rounded-full">
                       {item.category}
                     </span>
                     <span className="px-2 py-1 text-xs bg-card rounded-full flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {item.timeframe}
+                      {item.priority}
                     </span>
                   </div>
-                  <h3 className="font-semibold text-lg mb-1">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                  <h3 className="font-semibold text-lg mb-1">{item.item}</h3>
+                  <p className="text-sm text-muted-foreground">Priority: {item.priority} | Category: {item.category}</p>
                 </div>
                 <ChevronRight 
                   className={`w-5 h-5 transition-transform ${
-                    expandedItem === item.id ? "rotate-90" : ""
+                    expandedItem === index ? "rotate-90" : ""
                   }`} 
                 />
               </div>
             </div>
 
-            {expandedItem === item.id && (
+            {expandedItem === index && (
               <motion.div
                 className="px-4 pb-4 border-t border-border/50"
                 initial={{ opacity: 0, height: 0 }}
@@ -81,24 +81,10 @@ const PrioritizedActionItems = ({ actionItems }) => {
                 <div className="pt-4 space-y-4">
                   {/* Action Details */}
                   <div className="p-3 bg-card rounded-lg">
-                    <p className="text-xs font-semibold mb-2 text-primary">Recommended Action:</p>
-                    <p className="text-sm">{item.action}</p>
+                    <p className="text-xs font-semibold mb-2 text-primary">Action Item:</p>
+                    <p className="text-sm">{item.item}</p>
                   </div>
 
-                  {/* Exercises */}
-                  {item.exercises && item.exercises.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold mb-2">Practice Exercises:</p>
-                      <div className="space-y-2">
-                        {item.exercises.map((exercise, idx) => (
-                          <div key={idx} className="flex items-start gap-2">
-                            <CheckSquare className="w-4 h-4 text-primary mt-0.5" />
-                            <p className="text-sm text-muted-foreground">{exercise}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Progress Tracking */}
                   <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
@@ -136,9 +122,9 @@ const PrioritizedActionItems = ({ actionItems }) => {
             <p className="text-xl font-bold">{actionItems.length}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Critical Priority</p>
+            <p className="text-xs text-muted-foreground">High Priority</p>
             <p className="text-xl font-bold text-destructive">
-              {actionItems.filter(i => i.impact === "Critical").length}
+              {actionItems.filter(i => i.priority?.toLowerCase() === "high").length}
             </p>
           </div>
           <div>

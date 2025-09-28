@@ -1,18 +1,28 @@
-import { db } from "@/lib/prisma";
 import { inngest } from "./client";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const generateIndustryInsights = inngest.createFunction(
   { name: "Generate Industry Insights" },
   { cron: "0 0 * * 0" }, // Run every Sunday at midnight
   async ({ event, step }) => {
     const industries = await step.run("Fetch industries", async () => {
-      return await db.industryInsight.findMany({
-        select: { industry: true },
+      // Fetch industries from your MongoDB backend instead of Prisma
+      const response = await fetch(`${API_URL}/api/industries`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch industries');
+      }
+      
+      return await response.json();
     });
 
     for (const { industry } of industries) {
@@ -50,13 +60,17 @@ export const generateIndustryInsights = inngest.createFunction(
       const insights = JSON.parse(cleanedText);
 
       await step.run(`Update ${industry} insights`, async () => {
-        await db.industryInsight.update({
-          where: { industry },
-          data: {
+        // Update industry insights via MongoDB backend API
+        await fetch(`${API_URL}/api/industries/update/${industry}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             ...insights,
             lastUpdated: new Date(),
             nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          },
+          }),
         });
       });
     }
