@@ -34,7 +34,7 @@ export default clerkMiddleware(async (auth, req) => {
   // If user is authenticated, check if they need to complete their profile
   if (userId && isProtectedRoute(req) && !isProfileUpdateRoute(req)) {
     try {
-      // Instead of using Prisma directly in middleware, we'll make an API call
+      // Check user profile via API call
       const response = await fetch(`${req.nextUrl.origin}/api/user/profile`, {
         headers: {
           'Content-Type': 'application/json',

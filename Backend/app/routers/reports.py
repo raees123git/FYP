@@ -1,6 +1,6 @@
 # SkillEdge-API/app/routers/reports.py
 """
-API endpoints for interview report management (trimmed to non-verbal saving and updates)
+API endpoints for interview report management (verbal, non-verbal, and overall reports)
 """
 
 from fastapi import APIRouter, HTTPException, Header, Depends
@@ -10,10 +10,14 @@ from datetime import datetime
 from app.database import (
     get_interview_reports_collection,
     get_nonverbal_reports_collection,
+    get_verbal_reports_collection,
+    get_overall_reports_collection,
 )
 from app.models import (
     InterviewReport,
     NonVerbalReport,
+    VerbalReport,
+    OverallReport,
     SaveInterviewReportRequest,
 )
 
@@ -35,7 +39,7 @@ async def save_interview_report(
     request: SaveInterviewReportRequest,
     user_id: str = Depends(get_current_user_id)
 ):
-    """Optimized save for interview metadata and comprehensive non-verbal report."""
+    """Optimized save for interview metadata, verbal report, non-verbal report, and overall report."""
     import time
     start_time = time.time()
     
@@ -119,10 +123,38 @@ async def save_interview_report(
         
         response_data: Dict[str, Any] = {
             "interview_id": interview_id,
+            "verbal_report_id": None,
             "nonverbal_report_id": None,
+            "overall_report_id": None,
         }
 
-        # OPTIMIZATION 4: Asynchronous non-verbal report save (if provided)
+        # Get additional collections
+        verbal_reports_collection = get_verbal_reports_collection()
+        overall_reports_collection = get_overall_reports_collection()
+
+        # OPTIMIZATION 4a: Save verbal report (if provided)
+        verbal_save_time = 0
+        if request.verbal_report:
+            print(f"💾 Saving verbal report...")
+            
+            verbal_start = time.time()
+            verbal_doc = {
+                "user_id": user_id,
+                "interview_id": interview_id,
+                **request.verbal_report,  # Spread all verbal report data
+                "created_at": current_time
+            }
+            
+            # Single optimized insert
+            verbal_result = await verbal_reports_collection.insert_one(verbal_doc)
+            response_data["verbal_report_id"] = str(verbal_result.inserted_id)
+            
+            verbal_end = time.time()
+            verbal_save_time = verbal_end - verbal_start
+            print(f"⏱️ Backend Phase 4a - Verbal DB write: {verbal_save_time:.4f}s")
+            print(f"✅ Verbal report saved with ID: {response_data['verbal_report_id']}")
+
+        # OPTIMIZATION 4b: Save non-verbal report (if provided)
         nonverbal_save_time = 0
         if request.nonverbal_report:
             print(f"💾 Saving comprehensive non-verbal report...")
@@ -141,12 +173,34 @@ async def save_interview_report(
             
             nonverbal_end = time.time()
             nonverbal_save_time = nonverbal_end - nonverbal_start
-            print(f"⏱️ Backend Phase 4 - Non-verbal DB write: {nonverbal_save_time:.4f}s")
-            print(f"✅ Non-verbal report saved with ID: {response_data['nonverbal_report_id']}")  
+            print(f"⏱️ Backend Phase 4b - Non-verbal DB write: {nonverbal_save_time:.4f}s")
+            print(f"✅ Non-verbal report saved with ID: {response_data['nonverbal_report_id']}")
+
+        # OPTIMIZATION 4c: Save overall report (if provided)
+        overall_save_time = 0
+        if request.overall_report:
+            print(f"💾 Saving overall report...")
+            
+            overall_start = time.time()
+            overall_doc = {
+                "user_id": user_id,
+                "interview_id": interview_id,
+                **request.overall_report,  # Spread all overall report data
+                "created_at": current_time
+            }
+            
+            # Single optimized insert
+            overall_result = await overall_reports_collection.insert_one(overall_doc)
+            response_data["overall_report_id"] = str(overall_result.inserted_id)
+            
+            overall_end = time.time()
+            overall_save_time = overall_end - overall_start
+            print(f"⏱️ Backend Phase 4c - Overall DB write: {overall_save_time:.4f}s")
+            print(f"✅ Overall report saved with ID: {response_data['overall_report_id']}")
 
         total_backend_time = time.time() - start_time
         print(f"🏁 TOTAL BACKEND PROCESSING TIME: {total_backend_time:.4f}s")
-        print(f"✅ BACKEND PERFORMANCE BREAKDOWN: Setup={((setup_time - start_time)):.4f}s, DuplicateCheck={((duplicate_check_time - setup_time)):.4f}s, InterviewDB={((db_write_time - db_write_start)):.4f}s, NonVerbalDB={nonverbal_save_time:.4f}s, Total={total_backend_time:.4f}s")
+        print(f"✅ BACKEND PERFORMANCE BREAKDOWN: Setup={((setup_time - start_time)):.4f}s, DuplicateCheck={((duplicate_check_time - setup_time)):.4f}s, InterviewDB={((db_write_time - db_write_start)):.4f}s, VerbalDB={verbal_save_time:.4f}s, NonVerbalDB={nonverbal_save_time:.4f}s, OverallDB={overall_save_time:.4f}s, Total={total_backend_time:.4f}s")
         return {
             "success": True,
             "message": "Interview saved successfully",

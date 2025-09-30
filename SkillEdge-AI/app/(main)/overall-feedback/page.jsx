@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ReportHeader, CorrelationAnalysis, ActionRecommendations, PerformanceCorrelationChart, ImpactAnalysisCards, PrioritizedActionItems } from "@/components/reports/overall";
-import { correlateVerbalNonVerbal, generateActionItems, formatCorrelationData } from "@/components/reports/overall/utils";
 import { Loader2 } from "lucide-react";
 
 export default function OverallFeedbackReport() {
@@ -19,31 +18,31 @@ export default function OverallFeedbackReport() {
     // Fetch verbal and non-verbal report data from localStorage
     const fetchData = async () => {
       try {
-        const storedVerbalData = localStorage.getItem("verbalReportData");
-        const storedNonVerbalData = localStorage.getItem("nonVerbalReportData");
+        // UPDATED: Use official overall analysis data instead of duplicate calculation system
+        const storedOverallAnalysis = localStorage.getItem("overallAnalysis");
+        const storedVerbalData = localStorage.getItem("verbalAnalysisReport");
         
-        if (!storedVerbalData || !storedNonVerbalData) {
+        if (!storedOverallAnalysis || !storedVerbalData) {
           // Redirect to home if data is not available
           router.push("/");
           return;
         }
         
+        const parsedOverallData = JSON.parse(storedOverallAnalysis);
         const parsedVerbalData = JSON.parse(storedVerbalData);
-        const parsedNonVerbalData = JSON.parse(storedNonVerbalData);
         
         setVerbalData(parsedVerbalData);
-        setNonVerbalData(parsedNonVerbalData);
         
-        // Generate correlations between verbal and non-verbal data
-        const generatedCorrelations = correlateVerbalNonVerbal(parsedVerbalData, parsedNonVerbalData);
-        setCorrelations(generatedCorrelations);
+        // Use official overall analysis data
+        setCorrelations(parsedOverallData.correlations);
+        setActionItems(parsedOverallData.action_items || []);
         
-        // Generate prioritized action items
-        const generatedActionItems = generateActionItems(generatedCorrelations);
-        setActionItems(generatedActionItems);
-        
-        // Format data for visualization
-        const formattedData = formatCorrelationData(generatedCorrelations);
+        // Simple chart data from official analysis
+        const formattedData = [
+          { name: "Verbal Score", value: parsedOverallData.verbal_score, type: "positive" },
+          { name: "Non-Verbal Score", value: parsedOverallData.nonverbal_score, type: "positive" },
+          { name: "Overall Score", value: parsedOverallData.overall_score, type: "positive" }
+        ];
         setChartData(formattedData);
         
         setLoading(false);

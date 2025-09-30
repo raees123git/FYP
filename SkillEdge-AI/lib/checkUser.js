@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs";
-import { db } from "./prisma";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const checkUser = async () => {
   const { userId } = auth();
@@ -9,34 +10,47 @@ export const checkUser = async () => {
   }
 
   try {
-    const loggedInUser = await db.user.findUnique({
-      where: {
-        clerkUserId: userId,
+    // Check if user exists in MongoDB via backend API
+    const response = await fetch(`${API_URL}/api/profile/get/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${userId}`,
+        'Content-Type': 'application/json',
       },
     });
 
-    if (loggedInUser) {
+    if (response.ok) {
+      const loggedInUser = await response.json();
       return {
         ...loggedInUser,
         hasCompletedProfile: !!loggedInUser.industry && !!loggedInUser.skills
       };
     }
 
-    // If user doesn't exist in our database, we'll create them
-    // Note: You might want to fetch user details from Clerk's API here
-    const newUser = await db.user.create({
-      data: {
-        clerkUserId: userId,
-        name: "New User", // You might want to fetch this from Clerk
-        imageUrl: "", // You might want to fetch this from Clerk
-        email: "", // You might want to fetch this from Clerk
+    // If user doesn't exist, create them via backend API
+    const createResponse = await fetch(`${API_URL}/api/profile/create`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${userId}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        clerkUserId: userId,
+        name: "New User",
+        imageUrl: "",
+        email: "",
+      }),
     });
 
-    return {
-      ...newUser,
-      hasCompletedProfile: false
-    };
+    if (createResponse.ok) {
+      const newUser = await createResponse.json();
+      return {
+        ...newUser,
+        hasCompletedProfile: false
+      };
+    }
+
+    return null;
   } catch (error) {
     console.error("Error in checkUser:", error);
     return null;

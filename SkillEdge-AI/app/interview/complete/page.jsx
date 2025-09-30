@@ -28,9 +28,9 @@ export default function InterviewComplete() {
   const [comprehensiveNonVerbalReport, setComprehensiveNonVerbalReport] = useState(null);
   const [connectionWarmed, setConnectionWarmed] = useState(false);
   const [connectionWarming, setConnectionWarming] = useState(false);
-  const isSavingRef = useRef(false);  // Use ref for immediate tracking
-  const savedInterviewIdRef = useRef(null);  // Track saved interview ID
-  const pollingIntervalRef = useRef(null);  // Track polling interval
+  const isSavingRef = useRef(false);  
+  const savedInterviewIdRef = useRef(null);  
+  const pollingIntervalRef = useRef(null);  
   const router = useRouter();
 
   // Removed localStorage cleanup for comprehensive report cache (no longer used)
@@ -109,11 +109,11 @@ export default function InterviewComplete() {
         savedInterviewIdRef.current = savedInterviewId;
       }
 
-      // Check if non-verbal report was already saved to database
-      const nonVerbalSaved = localStorage.getItem(`nonVerbalDatabaseSaved_${sessionId}`);
-      if (nonVerbalSaved === 'true') {
+      // Check if reports were already saved to database
+      const reportsSaved = localStorage.getItem(`allReportsDatabaseSaved_${sessionId}`);
+      if (reportsSaved === 'true') {
         setDatabaseSaved(true);
-        console.log('✅ Non-verbal report already saved to database for this session');
+        console.log('✅ All reports already saved to database for this session');
       }
 
       // Check if verbal analysis already exists for this session
@@ -161,7 +161,7 @@ export default function InterviewComplete() {
           await generateNonVerbalReportImmediately(parsedData);
           
           // Always generate comprehensive report (not stored in localStorage)
-          await generateComprehensiveReport(parsedData);
+          // Comprehensive report is generated in the main flow
         } catch (e) {
           console.error("Failed to parse existing analysis:", e);
           // If parsing fails, fetch new analysis
@@ -172,7 +172,7 @@ export default function InterviewComplete() {
         await generateNonVerbalReportImmediately(parsedData);
         
         // Generate remaining reports (verbal and overall) in the background
-        await generateAllReports(parsedData);
+        await generateAllReportsOnce(parsedData);
       }
       
       // Removed delayed cleanup of comprehensive report cache (no longer used)
@@ -222,30 +222,14 @@ export default function InterviewComplete() {
       if (existingOverallAnalysis && !overallAnalysis) {
         try {
           const overall = JSON.parse(existingOverallAnalysis);
-          console.log('🔄 Existing overall analysis found, loading...');
+          console.log('✅ Existing overall analysis found, loading from localStorage');
           setOverallAnalysis(overall);
         } catch (e) {
           console.error("Failed to parse existing overall analysis:", e);
         }
       }
 
-      // Generate overall analysis if we have both reports but no existing overall (use latest values)
-      if (newVerbalAnalysis && nonVerbalAnalysis && !overallAnalysis && !existingOverallAnalysis) {
-        console.log('🔄 Generating overall analysis from available reports...');
-        console.log('📊 Report data available:', {
-          verbalScore: newVerbalAnalysis?.overall_score,
-          nonVerbalScore: nonVerbalAnalysis?.overall_confidence
-        });
-        try {
-          const overall = generateOverallAnalysis(newVerbalAnalysis, nonVerbalAnalysis, parsedData);
-          console.log('📊 Generated overall analysis:', overall);
-          setOverallAnalysis(overall);
-          localStorage.setItem(`overallAnalysisReport_${sessionId}`, JSON.stringify(overall));
-          console.log('✅ Overall analysis generated and saved successfully');
-        } catch (e) {
-          console.error("Failed to generate overall analysis:", e);
-        }
-      }
+      // Note: Overall analysis is handled in the main generation flow, not here
 
       // If we have both verbal and non-verbal, stop analysis loading and ensure comprehensive report is ready
       if ((newVerbalAnalysis || verbalAnalysis) && nonVerbalAnalysis) {
@@ -311,57 +295,11 @@ export default function InterviewComplete() {
     };
   }, [analysisLoading, verbalAnalysis, analysisError]);
 
-  // Generate overall analysis when both verbal and non-verbal reports become available
-  useEffect(() => {
-    if (verbalAnalysis && nonVerbalAnalysis && !overallAnalysis) {
-      const raw = localStorage.getItem("interviewResults");
-      if (raw) {
-        try {
-          const parsedData = JSON.parse(raw);
-          const sessionId = parsedData.sessionId;
-          console.log('🎯 Both reports available, generating overall analysis...');
-          const overall = generateOverallAnalysis(verbalAnalysis, nonVerbalAnalysis, parsedData);
-          setOverallAnalysis(overall);
-          
-          // Store overall analysis in localStorage for persistence
-          if (sessionId) {
-            localStorage.setItem(`overallAnalysisReport_${sessionId}`, JSON.stringify(overall));
-            console.log('💾 Overall analysis saved to localStorage for session:', sessionId);
-          }
-          console.log('✅ Overall analysis generated from state update');
-        } catch (e) {
-          console.error("Failed to generate overall analysis:", e);
-        }
-      }
-    }
-  }, [verbalAnalysis, nonVerbalAnalysis, overallAnalysis]);
+  // Note: Overall analysis generation is now handled in generateAllReportsOnce
 
-  // Generate comprehensive report when all basic reports are available
-  useEffect(() => {
-    if (verbalAnalysis && nonVerbalAnalysis && !comprehensiveReportReady && !comprehensiveNonVerbalReport) {
-      console.log('🎯 All basic reports available, generating comprehensive report...');
-      try {
-        let comprehensiveData;
-        if (typeof window !== 'undefined' && window.createComprehensiveNonVerbalReport) {
-          comprehensiveData = window.createComprehensiveNonVerbalReport(
-            nonVerbalAnalysis.analytics,
-            nonVerbalAnalysis.audioMetrics
-          );
-        } else {
-          comprehensiveData = createComprehensiveNonVerbalReport(
-            nonVerbalAnalysis.analytics,
-            nonVerbalAnalysis.audioMetrics
-          );
-        }
-        setComprehensiveNonVerbalReport(comprehensiveData);
-        setComprehensiveReportReady(true);
-        setAnalysisLoading(false); // Ensure loading state is cleared
-        console.log('✅ Comprehensive report generated after report detection!');
-      } catch (error) {
-        console.error('🔴 Failed to generate comprehensive report after detection:', error);
-      }
-    }
-  }, [verbalAnalysis, nonVerbalAnalysis, comprehensiveReportReady, comprehensiveNonVerbalReport]);
+  // Note: Overall analysis is now generated in the main flow, not separately
+
+  // Note: Comprehensive report is generated in the main flow, no separate useEffect needed
 
   // Stop polling when all reports are ready
   useEffect(() => {
@@ -371,6 +309,33 @@ export default function InterviewComplete() {
       pollingIntervalRef.current = null;
     }
   }, [verbalAnalysis, nonVerbalAnalysis]);
+
+  // Debug logging for save button state
+  useEffect(() => {
+    const canSave = !!(verbalAnalysis && nonVerbalAnalysis && overallAnalysis);
+    const saveButtonEnabled = !databaseSaving && !databaseSaved && !analysisLoading && !analysisError && canSave;
+    
+    console.log('💾 Save Button State Debug:', {
+      timestamp: new Date().toLocaleTimeString(),
+      canSave,
+      saveButtonEnabled,
+      reasons_disabled: {
+        databaseSaving,
+        databaseSaved,
+        analysisLoading,
+        analysisError: !!analysisError,
+        missing_verbal: !verbalAnalysis,
+        missing_nonverbal: !nonVerbalAnalysis,
+        missing_overall: !overallAnalysis
+      },
+      reports_available: {
+        verbal: !!verbalAnalysis,
+        nonverbal: !!nonVerbalAnalysis,
+        overall: !!overallAnalysis,
+        comprehensive: !!comprehensiveNonVerbalReport
+      }
+    });
+  }, [verbalAnalysis, nonVerbalAnalysis, overallAnalysis, databaseSaving, databaseSaved, analysisLoading, analysisError, comprehensiveNonVerbalReport]);
 
   // Generate non-verbal analysis immediately for better UX
   const generateNonVerbalReportImmediately = async (interviewData) => {
@@ -389,189 +354,153 @@ export default function InterviewComplete() {
     }
   };
 
-  // Generate all three reports without localStorage cache for comprehensive data
-  const generateAllReports = async (interviewData) => {
-    // Prevent duplicate execution during database save
-    if (databaseSaving) {
-      console.log('🚫 Blocking generateAllReports during database save to prevent interference');
+  // SINGLE GENERATION FLOW: Generate all 3 reports in sequence
+  const generateAllReportsOnce = async (interviewData) => {
+    // Prevent duplicate execution
+    if (window.generatingReports) {
+      console.log('🔄 Report generation already in progress, skipping...');
       return;
     }
     
-    // If we already have comprehensive report ready, don't regenerate
-    if (comprehensiveReportReady && comprehensiveNonVerbalReport) {
-      console.log('✅ Reports already generated, skipping regeneration');
-      return;
-    }
-    
-    // Prevent duplicate execution (React Strict Mode protection)
-    if (window.generatingAllReports) {
-      console.log('🔄 generateAllReports already in progress, skipping duplicate...');
-      return;
-    }
-    
-    window.generatingAllReports = true;
+    window.generatingReports = true;
     
     try {
-      console.log('🎯 Starting generateAllReports execution');
-      // 1. Generate verbal analysis
+      console.log('🎯 Starting SINGLE report generation flow...');
+      
+      // STEP 1: Generate verbal analysis
+      console.log('📝 Step 1: Generating verbal analysis...');
       const verbal = await fetchVerbalAnalysis(interviewData);
-      if (!verbal) return;
-      
-      // 2. Use existing non-verbal analysis or generate if not available
-      let nonVerbal = nonVerbalAnalysis;
-      if (!nonVerbal) {
-        console.log('🔄 Non-verbal analysis not found, generating now...');
-        nonVerbal = await generateBasicNonVerbalAnalysis(interviewData);
-        setNonVerbalAnalysis(nonVerbal);
-        setNonVerbalReady(true);
-      } else {
-        console.log('✅ Using existing non-verbal analysis');
+      if (!verbal) {
+        console.error('❌ Failed to generate verbal analysis');
+        return;
       }
+      console.log('✅ Verbal analysis generated:', verbal.overall_score);
       
-      // 3. Generate overall analysis
-      const overall = generateOverallAnalysis(verbal, nonVerbal, interviewData);
+      // STEP 2: Generate basic non-verbal analysis
+      console.log('🎤 Step 2: Generating non-verbal analysis...');
+      const nonVerbal = await generateBasicNonVerbalAnalysis(interviewData);
+      setNonVerbalAnalysis(nonVerbal);
+      setNonVerbalReady(true);
+      console.log('✅ Non-verbal analysis generated');
+      
+      // STEP 3: Generate comprehensive non-verbal report (for database)
+      console.log('📊 Step 3: Generating comprehensive non-verbal report...');
+      const comprehensiveData = createComprehensiveNonVerbalReport(
+        nonVerbal.analytics,
+        nonVerbal.audioMetrics
+      );
+      setComprehensiveNonVerbalReport(comprehensiveData);
+      setComprehensiveReportReady(true);
+      console.log('✅ Comprehensive non-verbal report generated:', {
+        hasConfidenceScores: !!comprehensiveData.confidenceScores,
+        overallConfidence: comprehensiveData.confidenceScores?.overallConfidence
+      });
+      
+      // STEP 4: Generate overall analysis using both reports
+      console.log('� Step 4: Generating overall analysis...');
+      const overall = generateOverallAnalysis(verbal, comprehensiveData, interviewData);
       setOverallAnalysis(overall);
       
-      // Save overall analysis to localStorage
+      // Save to localStorage
       const sessionId = interviewData.sessionId;
       if (sessionId) {
         localStorage.setItem(`overallAnalysisReport_${sessionId}`, JSON.stringify(overall));
-        console.log('💾 Overall analysis saved to localStorage in generateAllReports');
       }
       
-      // 4. Generate comprehensive non-verbal report IN MEMORY and mark ready
-      let comprehensiveData;
-      try {
-        if (typeof window !== 'undefined' && window.createComprehensiveNonVerbalReport) {
-          comprehensiveData = window.createComprehensiveNonVerbalReport(
-            nonVerbal.analytics,
-            nonVerbal.audioMetrics
-          );
-        } else {
-          comprehensiveData = createComprehensiveNonVerbalReport(
-            nonVerbal.analytics,
-            nonVerbal.audioMetrics
-          );
-        }
-        setComprehensiveNonVerbalReport(comprehensiveData);
-        setComprehensiveReportReady(true);
-        console.log('✅ Comprehensive non-verbal report generated in memory and ready for save');
-      } catch (comprehensiveError) {
-        console.error('🔴 Failed to generate comprehensive report:', comprehensiveError.message);
-        setAnalysisError('Failed to generate comprehensive report: ' + comprehensiveError.message);
-        return; // Don't continue if this fails
-      }
-
-      console.log("Reports generated. Database saving can proceed without localStorage.");
-      
-      // 🚀 OPPORTUNISTIC CONNECTION WARMING: Warm connection while user sees reports
-      console.log('🔥 Warming database connection in background...');
-      fetch('http://localhost:8000/ping', {
-        method: 'GET',
-        signal: AbortSignal.timeout(12000) // Increased timeout for better success rate
-      }).then(() => {
-        console.log('✅ Database connection warmed! Save will be instant.');
-        window.dbConnectionWarmed = true;
-      }).catch((error) => {
-        console.log('⚠️ Background warming failed:', error.message);
-        console.log('💡 Save will work but may take a few seconds on first try.');
+      console.log('✅ Overall analysis generated:', {
+        overall_score: overall.overall_score,
+        verbal_score: overall.verbal_score,
+        nonverbal_score: overall.nonverbal_score,
+        interview_readiness: overall.interview_readiness
       });
-
+      
+      console.log('🎉 ALL REPORTS GENERATED SUCCESSFULLY!');
+      
+      // Warm database connection for faster saves
+      try {
+        await fetch('http://localhost:8000/ping', {
+          method: 'GET',
+          signal: AbortSignal.timeout(5000)
+        });
+        console.log('✅ Database connection warmed');
+        window.dbConnectionWarmed = true;
+      } catch (e) {
+        console.log('⚠️ Database warming failed, but reports are ready');
+      }
+      
     } catch (error) {
-      console.error("Failed to generate all reports:", error);
-      setAnalysisError(error.message || "Failed to generate reports. Please try again.");
+      console.error('🔴 Failed to generate reports:', error);
+      setAnalysisError('Failed to generate reports: ' + error.message);
       setAnalysisLoading(false);
     } finally {
-      window.generatingAllReports = false;
+      window.generatingReports = false;
     }
   };
 
   // Generate comprehensive report when verbal analysis already exists
-  const generateComprehensiveReport = async (interviewData) => {
-    // Prevent duplicate execution
-    if (comprehensiveReportReady || window.generatingComprehensiveReport) {
-      console.log('✅ Comprehensive report already ready or being generated, skipping...');
-      return;
-    }
-    
-    window.generatingComprehensiveReport = true;
-    try {
-      console.log('🎯 Generating comprehensive report from existing data...');
-      
-      // Use existing non-verbal analysis or generate if not available
-      let nonVerbal = nonVerbalAnalysis;
-      if (!nonVerbal) {
-        console.log('🔄 Non-verbal analysis not found, generating for comprehensive report...');
-        nonVerbal = await generateBasicNonVerbalAnalysis(interviewData);
-        setNonVerbalAnalysis(nonVerbal);
-        setNonVerbalReady(true);
-      } else {
-        console.log('✅ Using existing non-verbal analysis for comprehensive report');
-      }
-      
-      // Generate overall analysis
-      const verbal = verbalAnalysis; // Use existing verbal analysis
-      const overall = generateOverallAnalysis(verbal, nonVerbal, interviewData);
-      setOverallAnalysis(overall);
-      
-      // Save overall analysis to localStorage
-      const sessionId = interviewData.sessionId;
-      if (sessionId) {
-        localStorage.setItem(`overallAnalysisReport_${sessionId}`, JSON.stringify(overall));
-        console.log('💾 Overall analysis saved to localStorage in generateComprehensiveReport');
-      }
-      
-      // Generate comprehensive non-verbal report IN MEMORY
-      let comprehensiveData;
-      if (typeof window !== 'undefined' && window.createComprehensiveNonVerbalReport) {
-        comprehensiveData = window.createComprehensiveNonVerbalReport(
-          nonVerbal.analytics,
-          nonVerbal.audioMetrics
-        );
-      } else {
-        comprehensiveData = createComprehensiveNonVerbalReport(
-          nonVerbal.analytics,
-          nonVerbal.audioMetrics
-        );
-      }
-      setComprehensiveNonVerbalReport(comprehensiveData);
-      setComprehensiveReportReady(true);
-      console.log('✅ Comprehensive report ready! Save button should now be enabled.');
-      
-      // 🚀 OPPORTUNISTIC CONNECTION WARMING: Warm connection while user sees reports
-      console.log('🔥 Warming database connection in background...');
-      fetch('http://localhost:8000/ping', {
-        method: 'GET',
-        signal: AbortSignal.timeout(8000)
-      }).then(() => {
-        console.log('✅ Database connection warmed! Save will be instant.');
-        window.dbConnectionWarmed = true;
-      }).catch((error) => {
-        console.log('⚠️ Background warming failed:', error.message);
-        console.log('💡 Save will work but may take a few seconds on first try.');
-      });
-      
-    } catch (error) {
-      console.error('🔴 Failed to generate comprehensive report:', error);
-      setAnalysisError('Failed to generate comprehensive report: ' + error.message);
-    } finally {
-      window.generatingComprehensiveReport = false;
-    }
-  };
+  // Note: Comprehensive report generation is now handled in generateAllReportsOnce
   
   
-  // Optimized function to save in-memory comprehensive non-verbal report to database
-  const saveNonVerbalToDatabase = async () => {
+  // Optimized function to save all reports (verbal, non-verbal, and overall) to database
+  const saveAllReportsToDatabase = async () => {
     if (databaseSaving || databaseSaved) {
       console.log('Save already in progress or completed, skipping...');
       return;
     }
 
-    if (!comprehensiveReportReady || !comprehensiveNonVerbalReport) {
-      console.log('⚠️ Cannot save yet - comprehensive report still being generated. Please wait...');
-      setDatabaseError('Please wait for report generation to complete before saving.');
+    // Check if we have the essential reports available
+    console.log('🔍 Validating reports for database save...');
+    console.log('📊 Current report state:', {
+      hasVerbalAnalysis: !!verbalAnalysis,
+      hasNonVerbalAnalysis: !!nonVerbalAnalysis,
+      hasOverallAnalysis: !!overallAnalysis,
+      hasComprehensiveNonVerbalReport: !!comprehensiveNonVerbalReport,
+      comprehensiveReportReady,
+      analysisLoading,
+      analysisError
+    });
+
+    // First check: Do we have the basic required reports?
+    if (!verbalAnalysis || !nonVerbalAnalysis || !overallAnalysis) {
+      console.log('⚠️ Missing basic reports - cannot save yet');
+      console.log('📋 Missing reports:', {
+        needsVerbal: !verbalAnalysis,
+        needsNonVerbal: !nonVerbalAnalysis,
+        needsOverall: !overallAnalysis
+      });
+      setDatabaseError('Please wait for all reports to be generated before saving.');
       return;
     }
+
+    // Second check: Do we have comprehensive non-verbal report? If not, generate it on-demand
+    let comprehensiveReport = comprehensiveNonVerbalReport;
+    if (!comprehensiveReport && nonVerbalAnalysis) {
+      console.log('🔧 Comprehensive report missing but basic non-verbal exists - generating on-demand...');
+      try {
+        comprehensiveReport = createComprehensiveNonVerbalReport(
+          nonVerbalAnalysis.analytics,
+          nonVerbalAnalysis.audioMetrics
+        );
+        setComprehensiveNonVerbalReport(comprehensiveReport);
+        console.log('✅ Comprehensive report generated on-demand:', {
+          hasConfidenceScores: !!comprehensiveReport.confidenceScores,
+          overallConfidence: comprehensiveReport.confidenceScores?.overallConfidence
+        });
+      } catch (error) {
+        console.error('❌ Failed to generate comprehensive report on-demand:', error);
+        setDatabaseError('Failed to prepare comprehensive report. Please try again.');
+        return;
+      }
+    }
+
+    // Final validation: Ensure we now have all required data
+    if (!comprehensiveReport) {
+      console.log('⚠️ Still missing comprehensive report after on-demand generation');
+      setDatabaseError('Unable to generate comprehensive report. Please refresh and try again.');
+      return;
+    }
+
+    console.log('✅ All reports validated and ready for database save!');
 
     // START TIMING MEASUREMENT
     const startTime = performance.now();
@@ -586,7 +515,7 @@ export default function InterviewComplete() {
     await new Promise(resolve => setTimeout(resolve, 10));
 
     try {
-      console.log('🚀 Starting non-verbal report database save (no localStorage)...');
+      console.log('🚀 Starting complete interview reports database save (verbal, non-verbal, and overall)...');
 
       const interviewData = data;
       const sessionId = interviewData.sessionId;
@@ -603,15 +532,26 @@ export default function InterviewComplete() {
       const checkTime = performance.now();
       console.log(`⏱️ Phase 1 - Session validation: ${((checkTime - startTime) / 1000).toFixed(4)}s`);
 
-      // Create save payload using in-memory comprehensive report
+      console.log('🎯 Preparing all 3 reports for database save...');
+
+      // Validate all reports are ready
+      console.log('� Final report validation before save:', {
+        verbal_score: verbalAnalysis?.overall_score,
+        nonverbal_confidence: comprehensiveReport?.confidenceScores?.overallConfidence,
+        overall_score: overallAnalysis?.overall_score,
+        overall_verbal_score: overallAnalysis?.verbal_score,
+        overall_nonverbal_score: overallAnalysis?.nonverbal_score
+      });
+
+      // Create save payload with all reports (verbal, non-verbal, and overall)
       const saveData = {
         interview_type: interviewData.type || "technical",
         role: interviewData.role || "Software Engineer",
         questions: interviewData.questions || [],
         answers: interviewData.answers || [],
-        verbal_report: null, // Only saving non-verbal for now
-        nonverbal_report: comprehensiveNonVerbalReport,
-        overall_report: null,
+        verbal_report: verbalAnalysis,
+        nonverbal_report: comprehensiveReport,
+        overall_report: overallAnalysis,
         session_id: sessionId,
         created_at: new Date().toISOString()
       };
@@ -627,7 +567,9 @@ export default function InterviewComplete() {
         session_id: saveData.session_id,
         questions_count: saveData.questions?.length || 0,
         answers_count: saveData.answers?.length || 0,
+        has_verbal_report: !!saveData.verbal_report,
         has_nonverbal_report: !!saveData.nonverbal_report,
+        has_overall_report: !!saveData.overall_report,
         payload_size_kb: payloadSizeKB
       });
 
@@ -678,10 +620,10 @@ export default function InterviewComplete() {
 
         setDatabaseSaved(true);
         
-        // Mark non-verbal report as saved for this session to persist across page reloads
+        // Mark all reports as saved for this session to persist across page reloads
         const sessionId = data.sessionId || `interview_${Date.now()}`;
-        localStorage.setItem(`nonVerbalDatabaseSaved_${sessionId}`, 'true');
-        console.log(`✅ Marked non-verbal report as saved for session: ${sessionId}`);
+        localStorage.setItem(`allReportsDatabaseSaved_${sessionId}`, 'true');
+        console.log(`✅ Marked all reports (verbal, non-verbal, and overall) as saved for session: ${sessionId}`);
 
         if (result.data?.interview_id) {
           // Keep currentInterviewId for navigation/use elsewhere
@@ -849,7 +791,7 @@ export default function InterviewComplete() {
                   setAnalysisLoading(true);
                   setAnalysisError(null);
                   setRetryCount(0);
-                  generateAllReports(data);
+                  generateAllReportsOnce(data);
                 }}
                 className="px-4 py-2 bg-destructive/20 hover:bg-destructive/30 text-destructive rounded-lg text-sm transition-all"
               >
@@ -997,7 +939,7 @@ export default function InterviewComplete() {
           <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center justify-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-500" />
             <span className="text-sm text-green-500">
-              ✅ Comprehensive non-verbal report saved to database successfully!
+              ✅ All interview reports (verbal, non-verbal, and overall) saved to database successfully!
             </span>
           </div>
         )}
@@ -1014,7 +956,7 @@ export default function InterviewComplete() {
               <button
                 onClick={() => {
                   setDatabaseError(null);
-                  saveNonVerbalToDatabase();
+                  saveAllReportsToDatabase();
                 }}
                 className="px-4 py-2 bg-destructive/20 hover:bg-destructive/30 text-destructive rounded-lg text-sm transition-all"
               >
@@ -1026,14 +968,14 @@ export default function InterviewComplete() {
         
         <div className="flex justify-center">
           <button
-            onClick={saveNonVerbalToDatabase}
-            disabled={databaseSaving || databaseSaved || analysisLoading || analysisError || !comprehensiveReportReady}
+            onClick={saveAllReportsToDatabase}
+            disabled={databaseSaving || databaseSaved || analysisLoading || analysisError || !verbalAnalysis || !nonVerbalAnalysis || !overallAnalysis}
             className={`px-8 py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 text-lg font-semibold ${
               databaseSaving 
                 ? "bg-yellow-500/50 text-yellow-100 cursor-wait" 
                 : databaseSaved
                 ? "bg-green-500/50 text-green-100 cursor-not-allowed"
-                : analysisLoading || analysisError || !comprehensiveReportReady
+                : analysisLoading || analysisError || !verbalAnalysis || !nonVerbalAnalysis || !overallAnalysis
                 ? "bg-gray-500/50 text-gray-300 cursor-not-allowed"
                 : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white hover:scale-105 hover:shadow-xl cursor-pointer"
             }`}
@@ -1058,7 +1000,7 @@ export default function InterviewComplete() {
                 <AlertCircle className="w-5 h-5" />
                 Analysis Failed
               </>
-            ) : !comprehensiveReportReady ? (
+            ) : !verbalAnalysis || !nonVerbalAnalysis || !overallAnalysis ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
                 Preparing Reports...
@@ -1067,7 +1009,7 @@ export default function InterviewComplete() {
             ) : (
               <>
                 <CheckCircle className="w-5 h-5" />
-                Save Non-Verbal Report to Database
+                Save All Reports to Database
               </>
             )}
           </button>
@@ -1075,10 +1017,10 @@ export default function InterviewComplete() {
         
         <p className="text-center text-muted-foreground text-sm mt-3">
           {databaseSaved 
-            ? "Your comprehensive non-verbal analysis has been permanently stored in the database."
-            : !comprehensiveReportReady
-            ? "Please wait while we prepare your comprehensive report for instant database saving..."
-            : "Click to save your detailed non-verbal analysis with all metrics to the database."
+            ? "Your complete interview analysis (verbal, non-verbal, and overall reports) has been permanently stored in the database."
+            : !verbalAnalysis || !nonVerbalAnalysis || !overallAnalysis
+            ? "Please wait while we prepare your comprehensive reports for instant database saving..."
+            : "Click to save your complete interview analysis including verbal, non-verbal, and overall reports to the database."
           }
         </p>
       </div>

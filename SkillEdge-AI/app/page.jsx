@@ -18,10 +18,10 @@ import Image from "next/image";
 import { features } from "@/data/features";
 import { testimonial } from "@/data/testimonial";
 import { faqs } from "@/data/faqs";
-import { getUsersFeedback } from "@/actions/dashboard";
+// import { getUsersFeedback } from "@/actions/dashboard";
 
 export default async function LandingPage() {
-  const { feedbacks } = await getUsersFeedback();
+  // const { feedbacks } = await getUsersFeedback();
 
   return (
     <>
