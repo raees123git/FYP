@@ -7,6 +7,7 @@ import Header from "../components/header";
 import { Toaster } from "sonner";
 import { Github, Linkedin, Send } from "lucide-react";
 import ScrollToTop from "@/components/scroll-to-top";
+import ChatbotWidget from "@/components/chatbot/ChatbotWidget";
 
 export const metadata = {
   title: "Skill Edge AI ",
@@ -36,6 +37,7 @@ export default function RootLayout({ children }) {
             <main className="min-h-screen">
               {children}
               <Toaster />
+              <ChatbotWidget />
             </main>
           </ThemeProvider>
         </body>

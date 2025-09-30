@@ -23,6 +23,7 @@ import {
   MessageCircle,
   LogIn,
   History,
+  Bot,
 } from "lucide-react";
 
 const Header = () => {
@@ -38,6 +39,13 @@ const Header = () => {
 
         <div className="flex items-center space-x-2 md:space-x-4 ">
           <SignedIn>
+            <Link href="/chatbot">
+              <Button variant="outline">
+                <Bot className="h-4 w-4" />
+                <span className="hidden md:block">AI Assistant</span>
+              </Button>
+            </Link>
+
             <Link href="/past-interviews">
               <Button variant="outline">
                 <History className="h-4 w-4" />
