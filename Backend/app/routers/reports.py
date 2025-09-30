@@ -210,3 +210,108 @@ async def save_interview_report(
     except Exception as e:
         print(f"❌ Database save error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/user-interviews", response_model=Dict[str, Any])
+async def get_user_interviews(user_id: str = Depends(get_current_user_id)):
+    """Get all interviews for the current user"""
+    try:
+        interview_reports_collection = get_interview_reports_collection()
+        
+        # Fetch all interviews for the user, sorted by creation date (newest first)
+        interviews_cursor = interview_reports_collection.find(
+            {"user_id": user_id},
+            {
+                "_id": 1,
+                "interview_type": 1,
+                "role": 1,
+                "questions": 1,
+                "answers": 1,
+                "created_at": 1,
+                "session_id": 1
+            }
+        ).sort("created_at", -1)
+        
+        interviews = await interviews_cursor.to_list(length=None)
+        
+        # Convert ObjectId to string for JSON serialization
+        for interview in interviews:
+            interview["_id"] = str(interview["_id"])
+            
+        return {
+            "success": True,
+            "reports": interviews,
+            "count": len(interviews)
+        }
+        
+    except Exception as e:
+        print(f"❌ Error fetching user interviews: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/interview/{interview_id}", response_model=Dict[str, Any])
+async def get_interview_details(
+    interview_id: str, 
+    user_id: str = Depends(get_current_user_id)
+):
+    """Get detailed information about a specific interview including all reports"""
+    try:
+        from bson.objectid import ObjectId
+        
+        # Validate ObjectId format
+        if not ObjectId.is_valid(interview_id):
+            raise HTTPException(status_code=400, detail="Invalid interview ID format")
+        
+        interview_reports_collection = get_interview_reports_collection()
+        verbal_reports_collection = get_verbal_reports_collection()
+        nonverbal_reports_collection = get_nonverbal_reports_collection()
+        overall_reports_collection = get_overall_reports_collection()
+        
+        # Fetch the main interview record
+        interview = await interview_reports_collection.find_one(
+            {"_id": ObjectId(interview_id), "user_id": user_id}
+        )
+        
+        if not interview:
+            raise HTTPException(status_code=404, detail="Interview not found")
+        
+        # Convert ObjectId to string
+        interview["_id"] = str(interview["_id"])
+        
+        # Fetch related reports
+        verbal_report = await verbal_reports_collection.find_one(
+            {"interview_id": interview_id, "user_id": user_id}
+        )
+        if verbal_report:
+            verbal_report["_id"] = str(verbal_report["_id"])
+        
+        nonverbal_report = await nonverbal_reports_collection.find_one(
+            {"interview_id": interview_id, "user_id": user_id}
+        )
+        if nonverbal_report:
+            nonverbal_report["_id"] = str(nonverbal_report["_id"])
+        
+        overall_report = await overall_reports_collection.find_one(
+            {"interview_id": interview_id, "user_id": user_id}
+        )
+        if overall_report:
+            overall_report["_id"] = str(overall_report["_id"])
+        
+        return {
+            "success": True,
+            "interview": interview,
+            "verbal_report": verbal_report,
+            "nonverbal_report": nonverbal_report,
+            "overall_report": overall_report,
+            "has_reports": {
+                "verbal": verbal_report is not None,
+                "nonverbal": nonverbal_report is not None,
+                "overall": overall_report is not None
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error fetching interview details: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
