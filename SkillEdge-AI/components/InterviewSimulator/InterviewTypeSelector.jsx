@@ -10,7 +10,6 @@ export default function InterviewTypeSelector() {
   const [selectedRole, setSelectedRole] = useState("Software Engineer");
   const [isLoaded, setIsLoaded] = useState(false);
   const [resumeFile, setResumeFile] = useState(null);
-  const [position, setPosition] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [existingResume, setExistingResume] = useState(null);
   const [questionCount, setQuestionCount] = useState(5);
@@ -72,10 +71,6 @@ export default function InterviewTypeSelector() {
                 filename: profileData.resume_filename || 'Resume.pdf',
                 uploaded_at: profileData.resume_uploaded_at
               });
-              // Set position from profile if available
-              if (profileData.position) {
-                setPosition(profileData.position);
-              }
             }
           }
         } catch (error) {
@@ -92,17 +87,12 @@ export default function InterviewTypeSelector() {
       return;
     }
 
-    if (!position) {
-      toast.error("Please select a position");
-      return;
-    }
-
     if (resumeFile.type !== "application/pdf") {
       toast.error("Please upload a PDF file");
       return;
     }
 
-    window.location.href = `/interview-simulator?type=resume&position=${encodeURIComponent(position)}&count=${questionCount}`;
+    window.location.href = `/interview-simulator?type=resume&count=${questionCount}`;
   };
 
   const handleViewResume = async () => {
@@ -142,7 +132,7 @@ export default function InterviewTypeSelector() {
     if (selectedType === "resume") {
       if (existingResume) {
         // If resume exists, pass the file_id to the interview simulator
-        window.location.href = `/interview-simulator?type=resume&position=${encodeURIComponent(position)}&count=${questionCount}&resume_id=${existingResume.file_id}`;
+        window.location.href = `/interview-simulator?type=resume&count=${questionCount}&resume_id=${existingResume.file_id}`;
       } else {
         // If no resume exists, handle new upload
         handleResumeUpload();
@@ -358,43 +348,9 @@ export default function InterviewTypeSelector() {
                     Click to View Your Resume
                   </button>
                 </div>
-                <div className="max-w-[95%] sm:max-w-md mx-auto mt-4">
-                  <h3 className="text-lg sm:text-xl font-semibold mb-3 text-purple-300">
-                    Select Target Position:
-                  </h3>
-                  <select
-                    value={position}
-                    onChange={(e) => setPosition(e.target.value)}
-                    className="w-full px-3 sm:px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm sm:text-base"
-                  >
-                    <option value="">Select a position</option>
-                    {technicalRoles.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
             ) : (
               <>
-                <div className="max-w-[95%] sm:max-w-md mx-auto">
-                  <h3 className="text-lg sm:text-xl font-semibold mb-3 text-purple-300">
-                    Select Position:
-                  </h3>
-                  <select
-                    value={position}
-                    onChange={(e) => setPosition(e.target.value)}
-                    className="w-full px-3 sm:px-4 py-2 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm sm:text-base"
-                  >
-                    <option value="">Select a position</option>
-                    {technicalRoles.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                </div>
                 <div className="max-w-[95%] sm:max-w-md mx-auto">
                   <h3 className="text-lg sm:text-xl font-semibold mb-3 text-purple-300">
                     Upload Your Resume:

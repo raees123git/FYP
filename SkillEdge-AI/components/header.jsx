@@ -53,7 +53,7 @@ const Header = () => {
               </Button>
             </Link>
 
-            <Link href="/">
+            <Link href="/industry-insights">
               <Button variant="outline">
                 <LayoutDashboard className="h-4 w-4" />
                 <span className="hidden md:block">Industry Insights</span>
