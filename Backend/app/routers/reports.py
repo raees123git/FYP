@@ -20,24 +20,14 @@ from app.models import (
     OverallReport,
     SaveInterviewReportRequest,
 )
+from app.routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/reports", tags=["Reports"])
-
-# Helper function to get user_id from headers
-async def get_current_user_id(authorization: str = Header(...)) -> str:
-    """Extract user ID from authorization header"""
-    try:
-        parts = authorization.split()
-        if len(parts) != 2 or parts[0].lower() != "bearer":
-            raise HTTPException(status_code=401, detail="Invalid authorization header format")
-        return parts[1]
-    except Exception:
-        raise HTTPException(status_code=401, detail="Unauthorized")
 
 @router.post("/save-interview", response_model=Dict[str, Any])
 async def save_interview_report(
     request: SaveInterviewReportRequest,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     """Optimized save for interview metadata, verbal report, non-verbal report, and overall report."""
     import time
@@ -213,7 +203,7 @@ async def save_interview_report(
 
 
 @router.get("/user-interviews", response_model=Dict[str, Any])
-async def get_user_interviews(user_id: str = Depends(get_current_user_id)):
+async def get_user_interviews(user_id: str = Depends(get_current_user)):
     """Get all interviews for the current user"""
     try:
         interview_reports_collection = get_interview_reports_collection()
@@ -252,7 +242,7 @@ async def get_user_interviews(user_id: str = Depends(get_current_user_id)):
 @router.get("/interview/{interview_id}", response_model=Dict[str, Any])
 async def get_interview_details(
     interview_id: str, 
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     """Get detailed information about a specific interview including all reports"""
     try:
@@ -315,3 +305,4 @@ async def get_interview_details(
     except Exception as e:
         print(f"❌ Error fetching interview details: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+

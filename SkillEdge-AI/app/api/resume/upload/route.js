@@ -1,24 +1,25 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { cookies } from 'next/headers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export async function POST(request) {
   try {
-    const { userId } = await auth();
+    const cookieStore = cookies();
+    const token = cookieStore.get('auth_token')?.value;
     
-    if (!userId) {
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get the form data from the request
     const formData = await request.formData();
     
-    // Forward the request to FastAPI backend
+    // Forward the request to FastAPI backend with JWT token
     const response = await fetch(`${API_URL}/api/profile/resume/upload`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${userId}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: formData,
     });

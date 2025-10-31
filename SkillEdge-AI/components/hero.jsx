@@ -5,9 +5,20 @@ import React, { useEffect, useRef } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
 
 const HeroSection = () => {
   const imageRef = useRef(null);
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  const handleGetStarted = (e) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      router.push('/sign-in');
+    }
+  };
 
   useEffect(() => {
     const imageElement = imageRef.current;
@@ -54,7 +65,7 @@ const HeroSection = () => {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <Link href="/interview-type" className="w-full sm:w-auto">
+            <Link href="/interview-type" className="w-full sm:w-auto" onClick={handleGetStarted}>
               <Button size="lg" className="w-full sm:w-auto px-8 cursor-pointer">
                 Get Started
               </Button>

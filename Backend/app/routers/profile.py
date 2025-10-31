@@ -26,25 +26,12 @@ from app.models import (
     NonVerbalReport,
     SaveInterviewReportRequest
 )
+from app.routers.auth import get_current_user
 
 router = APIRouter(prefix="/api/profile", tags=["Profile"])
 
-# Helper function to get user_id from headers (sent by Clerk from frontend)
-async def get_current_user_id(authorization: str = Header(...)) -> str:
-    """Extract user ID from authorization header"""
-    # In production, you should validate the JWT token from Clerk
-    # For now, we'll expect the user_id to be sent directly
-    # Format: "Bearer user_id"
-    try:
-        parts = authorization.split()
-        if len(parts) != 2 or parts[0].lower() != "bearer":
-            raise HTTPException(status_code=401, detail="Invalid authorization header format")
-        return parts[1]
-    except Exception as e:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
 @router.get("/", response_model=Dict[str, Any])
-async def get_profile(user_id: str = Depends(get_current_user_id)):
+async def get_profile(user_id: str = Depends(get_current_user)):
     """Get user profile by user ID"""
     try:
         profiles_collection = get_profiles_collection()
@@ -80,7 +67,7 @@ async def get_profile(user_id: str = Depends(get_current_user_id)):
 @router.post("/", response_model=ProfileResponse)
 async def create_profile(
     request: CreateProfileRequest,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     """Create a new user profile"""
     try:
@@ -132,7 +119,7 @@ async def create_profile(
 @router.put("/", response_model=ProfileResponse)
 async def update_profile(
     request: UpdateProfileRequest,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     """Update user profile"""
     try:
@@ -213,7 +200,7 @@ async def update_profile(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/", response_model=Dict[str, Any])
-async def delete_profile(user_id: str = Depends(get_current_user_id)):
+async def delete_profile(user_id: str = Depends(get_current_user)):
     """Delete user profile and all related data"""
     try:
         profiles_collection = get_profiles_collection()
@@ -247,7 +234,7 @@ async def delete_profile(user_id: str = Depends(get_current_user_id)):
 @router.post("/resume/upload")
 async def upload_resume(
     file: UploadFile = File(...),
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     """Upload a resume PDF file"""
     try:
@@ -300,7 +287,7 @@ async def upload_resume(
 @router.get("/resume/download/{file_id}")
 async def download_resume(
     file_id: str,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     """Download a resume file"""
     try:
@@ -331,7 +318,7 @@ async def download_resume(
 @router.delete("/resume/{file_id}")
 async def delete_resume(
     file_id: str,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user)
 ):
     """Delete a resume file"""
     try:
@@ -372,7 +359,7 @@ async def delete_resume(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/resumes")
-async def get_user_resumes(user_id: str = Depends(get_current_user_id)):
+async def get_user_resumes(user_id: str = Depends(get_current_user)):
     """Get all resumes for the current user"""
     try:
         resumes = await FileHandler.get_user_resumes(user_id)
@@ -386,3 +373,4 @@ async def get_user_resumes(user_id: str = Depends(get_current_user_id)):
     except Exception as e:
         print(f"Error fetching resumes: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+

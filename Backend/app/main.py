@@ -23,7 +23,8 @@ app = FastAPI()
 from app.database import connect_to_mongo, close_mongo_connection
 
 # Import routers
-from app.routers import profile, reports, chatbot
+from app.routers import profile, reports, chatbot, auth
+from app.routers.auth import get_current_user
 
 # Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -49,6 +50,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth.router)
 app.include_router(profile.router)
 app.include_router(reports.router)
 app.include_router(chatbot.router)
@@ -130,19 +132,10 @@ class VerbalReportRequest(BaseModel):
 @app.get("/api/interview/parse-resume/{file_id}")
 async def parse_resume(
     file_id: str,
-    authorization: str = Header(...)
+    user_id: str = Depends(get_current_user)
 ):
     """Parse a resume and extract its content for interview question generation"""
     try:
-        # Extract user_id from authorization header
-        try:
-            parts = authorization.split()
-            if len(parts) != 2 or parts[0].lower() != "bearer":
-                raise HTTPException(status_code=401, detail="Invalid authorization header format")
-            user_id = parts[1]
-        except Exception:
-            raise HTTPException(status_code=401, detail="Unauthorized")
-        
         # Download resume from GridFS
         result = await FileHandler.download_resume(file_id)
         

@@ -3,10 +3,11 @@
 Pydantic models for MongoDB documents
 """
 
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from bson.objectid import ObjectId
+import re
 
 class PyObjectId(str):
     """Custom ObjectId field for Pydantic models"""
@@ -20,11 +21,75 @@ class PyObjectId(str):
             raise ValueError("Invalid ObjectId")
         return str(v)
 
+# User Authentication Models
+class UserAuth(BaseModel):
+    """User authentication model"""
+    id: Optional[str] = Field(default=None, alias="_id")
+    email: EmailStr = Field(..., description="User email address")
+    password_hash: str = Field(..., description="Hashed password")
+    first_name: str = Field(default="")
+    last_name: str = Field(default="")
+    is_verified: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_login: Optional[datetime] = None
+    
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
+class UserSignup(BaseModel):
+    """User signup request"""
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    first_name: str
+    last_name: str
+    
+    @validator('password')
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one digit')
+        return v
+
+class UserLogin(BaseModel):
+    """User login request"""
+    email: EmailStr
+    password: str
+
+class PasswordChange(BaseModel):
+    """Password change request"""
+    current_password: str
+    new_password: str = Field(..., min_length=8)
+    
+    @validator('new_password')
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one digit')
+        return v
+
+class TokenResponse(BaseModel):
+    """JWT token response"""
+    access_token: str
+    token_type: str = "bearer"
+    user: Dict[str, Any]
+
 # User Profile Models
 class UserProfile(BaseModel):
     """User profile model for MongoDB"""
     id: Optional[str] = Field(default=None, alias="_id")
-    user_id: str = Field(..., description="Clerk user ID")
+    user_id: str = Field(..., description="User ID from auth collection")
     first_name: str = Field(default="")
     last_name: str = Field(default="")
     email: Optional[str] = Field(default="")

@@ -1,18 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { cookies } from 'next/headers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-// Helper function to get a safe user ID
-async function getSafeUserId() {
+// Helper function to get auth token
+async function getAuthToken() {
   try {
-    const { userId } = await auth();
-    if (!userId) return null;
-
-    // Clean up userId to ensure it's safe for DB
-    return userId.replace(/[^a-zA-Z0-9_-]/g, '');
+    const cookieStore = cookies();
+    return cookieStore.get('auth_token')?.value;
   } catch (error) {
-    console.error("Error getting user ID:", error);
+    console.error("Error getting auth token:", error);
     return null;
   }
 }
@@ -20,21 +17,21 @@ async function getSafeUserId() {
 // GET: Fetch user profile data
 export async function GET() {
   try {
-    const userId = await getSafeUserId();
+    const token = await getAuthToken();
 
-    if (!userId) {
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("Fetching profile for user:", userId);
+    console.log("Fetching profile from backend");
     console.log("Calling backend at:", `${API_URL}/api/profile/`);
 
     try {
-      // Call FastAPI backend
+      // Call FastAPI backend with JWT token
       const response = await fetch(`${API_URL}/api/profile/`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${userId}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -106,21 +103,21 @@ export async function GET() {
 // PUT: Update user profile
 export async function PUT(request) {
   try {
-    const userId = await getSafeUserId();
+    const token = await getAuthToken();
 
-    if (!userId) {
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const data = await request.json();
 
-    console.log("Updating profile for user:", userId, data);
+    console.log("Updating profile:", data);
 
-    // Call FastAPI backend
+    // Call FastAPI backend with JWT token
     const response = await fetch(`${API_URL}/api/profile/`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${userId}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),

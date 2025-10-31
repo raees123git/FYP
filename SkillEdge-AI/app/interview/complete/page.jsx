@@ -6,10 +6,10 @@ import { motion } from "framer-motion";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { generateBasicNonVerbalAnalysis, createComprehensiveNonVerbalReport } from "@/app/lib/nonverbal";
 import { generateOverallAnalysis } from "@/app/lib/overall";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 
 export default function InterviewComplete() {
-  const { user } = useUser();
+  const { user, isAuthenticated } = useAuth();
   const [data, setData] = useState({ questions: [], answers: [] });
   const [showWordCount, setShowWordCount] = useState(false);
   const [wordFrequency, setWordFrequency] = useState({});

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default function IndustryInsightsPage() {
-  const { user, isLoaded } = useUser();
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,15 +20,15 @@ export default function IndustryInsightsPage() {
   const [insights, setInsights] = useState(null);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (authLoading) return;
 
-    if (!user) {
+    if (!isAuthenticated) {
       router.push("/sign-in");
       return;
     }
 
     fetchUserProfileAndInsights();
-  }, [isLoaded, user, router]);
+  }, [authLoading, isAuthenticated, router]);
 
   const fetchUserProfileAndInsights = async () => {
     try {
@@ -85,7 +85,7 @@ export default function IndustryInsightsPage() {
     }
   };
 
-  if (!isLoaded || loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen pt-20 flex items-center justify-center">
         <div className="text-center space-y-4">

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 
 export default function InterviewTypeSelector() {
-  const { user } = useUser();
+  const { user, isAuthenticated } = useAuth();
   const [selectedType, setSelectedType] = useState("technical");
   const [selectedRole, setSelectedRole] = useState("Software Engineer");
   const [isLoaded, setIsLoaded] = useState(false);

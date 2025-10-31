@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Brain, BarChart3, RefreshCw, Bot, User, Download, Share, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -29,7 +29,7 @@ const ChatbotPage = () => {
   const [conversations, setConversations] = useState([]);
   
   const messagesEndRef = useRef(null);
-  const { user, isLoaded } = useUser();
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -40,16 +40,17 @@ const ChatbotPage = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (user) {
+    if (isAuthenticated) {
       loadConversations();
     }
-  }, [user]);
+  }, [isAuthenticated]);
 
   const loadConversations = async () => {
     try {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chatbot/conversations`, {
         headers: {
-          'Authorization': `Bearer ${user.id}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
       
@@ -63,7 +64,7 @@ const ChatbotPage = () => {
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading || !user) return;
+    if (!input.trim() || isLoading || !isAuthenticated) return;
 
     const userMessage = {
       id: Date.now().toString(),
@@ -77,11 +78,12 @@ const ChatbotPage = () => {
     setIsLoading(true);
 
     try {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chatbot/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.id}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           message: userMessage.content,
@@ -182,7 +184,7 @@ const ChatbotPage = () => {
     "How can SkillEdge-AI help me improve?"
   ];
 
-  if (!isLoaded) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-20">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -190,7 +192,7 @@ const ChatbotPage = () => {
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-20">
         <Card className="max-w-md">

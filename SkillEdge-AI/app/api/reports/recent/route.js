@@ -1,24 +1,24 @@
 import { NextResponse } from 'next/server';
-import { getAuth } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request) {
   try {
-    // Get user authentication from Clerk
-    const auth = getAuth(request);
-    const userId = auth?.userId;
+    // Get JWT token from cookies
+    const cookieStore = cookies();
+    const token = cookieStore.get('auth_token')?.value;
     
-    if (!userId) {
+    if (!token) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    // Call the Python backend API
+    // Call the Python backend API with JWT token
     const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/reports/user-interviews`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${userId}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
