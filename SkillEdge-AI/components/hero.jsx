@@ -49,7 +49,7 @@ const HeroSection = () => {
               Mock Interviews.
             </h1>
             <p className="mx-auto max-w-[95%] sm:max-w-[90%] md:max-w-[85%] lg:max-w-[600px] text-muted-foreground text-base sm:text-lg md:text-xl">
-              Advance your career with personalized guidance, interview prep, and
+              Advance your career with personalized guidance, interview preparation, and
               AI-powered tools for job success.
             </p>
           </div>

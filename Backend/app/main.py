@@ -23,7 +23,7 @@ app = FastAPI()
 from app.database import connect_to_mongo, close_mongo_connection
 
 # Import routers
-from app.routers import profile, reports
+from app.routers import profile, reports, chatbot
 
 # Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -51,6 +51,7 @@ app.add_middleware(
 # Include routers
 app.include_router(profile.router)
 app.include_router(reports.router)
+app.include_router(chatbot.router)
 
 # Health check endpoint for connection warming
 @app.get("/")
