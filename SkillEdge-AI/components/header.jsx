@@ -23,7 +23,8 @@ import {
   History,
   Bot,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  TrendingUp
 } from "lucide-react";
 
 const Header = () => {
@@ -50,6 +51,13 @@ const Header = () => {
                 <Button variant="outline">
                   <History className="h-4 w-4" />
                   <span className="hidden md:block">Past Interviews</span>
+                </Button>
+              </Link>
+
+              <Link href="/progress">
+                <Button variant="outline">
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="hidden md:block">Progress</span>
                 </Button>
               </Link>
 

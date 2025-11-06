@@ -6,7 +6,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 // Helper function to get auth token
 async function getAuthToken() {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     return cookieStore.get('auth_token')?.value;
   } catch (error) {
     console.error("Error getting auth token:", error);

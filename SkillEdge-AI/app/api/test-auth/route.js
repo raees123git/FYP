@@ -6,7 +6,7 @@ export async function GET(request) {
     console.log('Test auth endpoint called');
     
     // Get JWT token from cookies
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
     
     if (!token) {

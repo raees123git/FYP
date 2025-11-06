@@ -191,6 +191,7 @@ async def save_interview_report(
         total_backend_time = time.time() - start_time
         print(f"🏁 TOTAL BACKEND PROCESSING TIME: {total_backend_time:.4f}s")
         print(f"✅ BACKEND PERFORMANCE BREAKDOWN: Setup={((setup_time - start_time)):.4f}s, DuplicateCheck={((duplicate_check_time - setup_time)):.4f}s, InterviewDB={((db_write_time - db_write_start)):.4f}s, VerbalDB={verbal_save_time:.4f}s, NonVerbalDB={nonverbal_save_time:.4f}s, OverallDB={overall_save_time:.4f}s, Total={total_backend_time:.4f}s")
+        
         return {
             "success": True,
             "message": "Interview saved successfully",

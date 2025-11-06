@@ -9,7 +9,7 @@ export async function POST(request) {
     const log = (msg, extra = {}) => console.log(`[save-interview] ${msg}`, { t: `${ts()}s`, ...extra });
 
     // Get JWT token from cookies
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
     log('after getToken', { hasToken: !!token });
     

@@ -91,7 +91,7 @@ Make sure all salary figures are realistic USD amounts for the current market (2
 export async function POST(request) {
   try {
     // Get JWT token from cookies
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
 
     if (!token) {
