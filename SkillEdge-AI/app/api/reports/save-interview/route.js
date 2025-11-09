@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
 
 export async function POST(request) {
   try {
@@ -8,18 +8,13 @@ export async function POST(request) {
     const ts = () => ((Date.now() - startMs) / 1000).toFixed(3);
     const log = (msg, extra = {}) => console.log(`[save-interview] ${msg}`, { t: `${ts()}s`, ...extra });
 
-    // Get user authentication from Clerk (no fallback to currentUser for speed)
-    let userId = null;
-    try {
-      const auth = getAuth(request);
-      userId = auth?.userId;
-      log('after getAuth', { hasUserId: !!userId });
-    } catch (authError) {
-      console.error('[save-interview] Auth error (getAuth):', authError.message, { t: `${ts()}s` });
-    }
+    // Get JWT token from cookies
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth_token')?.value;
+    log('after getToken', { hasToken: !!token });
     
-    if (!userId) {
-      log('unauthorized (no userId from getAuth) - returning 401');
+    if (!token) {
+      log('unauthorized (no token) - returning 401');
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -90,7 +85,7 @@ export async function POST(request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${userId}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(reportData),
     });

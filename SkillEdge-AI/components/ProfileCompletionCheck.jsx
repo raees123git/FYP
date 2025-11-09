@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 
 export default function ProfileCompletionCheck({ children }) {
-  const { user, isLoaded } = useUser();
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [profileChecked, setProfileChecked] = useState(false);
@@ -14,11 +14,11 @@ export default function ProfileCompletionCheck({ children }) {
 
   useEffect(() => {
     const checkProfileCompletion = async () => {
-      // Skip check if user is not loaded yet
-      if (!isLoaded) return;
+      // Skip check if auth is still loading
+      if (authLoading) return;
       
       // Skip check if no user is signed in
-      if (!user) {
+      if (!isAuthenticated) {
         setLoading(false);
         setProfileChecked(true);
         return;
@@ -72,7 +72,7 @@ export default function ProfileCompletionCheck({ children }) {
     };
 
     checkProfileCompletion();
-  }, [user, isLoaded, router, pathname]);
+  }, [user, authLoading, router, pathname, isAuthenticated]);
 
   // Show loading state
   if (loading || !profileChecked) {

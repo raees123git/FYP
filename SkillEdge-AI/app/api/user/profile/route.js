@@ -1,21 +1,23 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { cookies } from 'next/headers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export async function GET() {
   try {
-    const { userId } = await auth();
+    // Get JWT token from cookies
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth_token')?.value;
 
-    if (!userId) {
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Call the FastAPI backend to get user profile
-    const response = await fetch(`${API_URL}/api/profile/get/${userId}`, {
+    const response = await fetch(`${API_URL}/api/profile/get`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${userId}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });

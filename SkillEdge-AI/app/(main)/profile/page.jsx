@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -27,7 +27,7 @@ const fadeIn = {
 };
 
 export default function ViewProfilePage() {
-  const { user, isLoaded } = useUser();
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -92,7 +92,7 @@ export default function ViewProfilePage() {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!isLoaded || !user) return;
+      if (authLoading || !isAuthenticated) return;
 
       try {
         setLoading(true);
@@ -115,9 +115,9 @@ export default function ViewProfilePage() {
     };
 
     fetchUserData();
-  }, [user, isLoaded]);
+  }, [user, authLoading, isAuthenticated]);
 
-  if (!isLoaded || loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center p-4">
         <div className="relative w-24 h-24 mb-6">

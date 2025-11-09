@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, 
@@ -21,12 +22,38 @@ import { NonVerbalReportViewer } from "../../../components/reports/NonVerbalRepo
 import { OverallReportViewer } from "../../../components/reports/OverallReportViewer";
 
 export default function InterviewDetailsPage() {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [interviewData, setInterviewData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
   const router = useRouter();
   const params = useParams();
   const interviewId = params.id;
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/sign-in');
+    }
+  }, [isAuthenticated, authLoading, router]);
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render the component if not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
+
 
   useEffect(() => {
     if (interviewId) {

@@ -64,6 +64,10 @@ def get_collection(collection_name: str):
     return db[collection_name]
 
 # Collections
+def get_users_collection():
+    """Get users collection for authentication"""
+    return get_collection("users")
+
 def get_profiles_collection():
     """Get profiles collection"""
     return get_collection("profiles")

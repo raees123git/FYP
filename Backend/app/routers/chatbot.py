@@ -40,6 +40,9 @@ from app.database import (
     get_overall_reports_collection
 )
 
+# Import authentication
+from app.routers.auth import get_current_user
+
 # Import chatbot service and models
 from app.chatbot.service import get_chatbot_service, ChatbotService
 from app.chatbot.models import (
@@ -58,23 +61,6 @@ router = APIRouter(prefix="/chatbot", tags=["chatbot"])
 
 # In-memory conversation storage (in production, use Redis or database)
 conversations: Dict[str, ConversationHistory] = {}
-
-def get_user_id_from_header(authorization: str = Header(None)) -> str:
-    """Extract user ID from authorization header"""
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization header required")
-    
-    # Extract user ID from authorization header
-    # Assuming format: "Bearer clerk_user_id"
-    try:
-        if authorization.startswith("Bearer "):
-            user_id = authorization.split("Bearer ")[1]
-            return user_id
-        else:
-            raise HTTPException(status_code=401, detail="Invalid authorization format")
-    except Exception as e:
-        logger.error(f"Error extracting user ID: {e}")
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
 
 async def get_user_reports(user_id: str) -> Dict[str, Any]:
     """Fetch user's latest interview reports"""
@@ -130,7 +116,7 @@ async def get_user_reports(user_id: str) -> Dict[str, Any]:
 @router.post("/chat", response_model=ChatResponse)
 async def chat_with_bot(
     request: ChatRequest,
-    user_id: str = Depends(get_user_id_from_header)
+    user_id: str = Depends(get_current_user)
 ):
     """Main chat endpoint for interacting with the chatbot"""
     try:
@@ -207,7 +193,7 @@ async def chat_with_bot(
 @router.get("/conversations/{conversation_id}", response_model=ConversationHistory)
 async def get_conversation(
     conversation_id: str,
-    user_id: str = Depends(get_user_id_from_header)
+    user_id: str = Depends(get_current_user)
 ):
     """Get conversation history by ID"""
     try:
@@ -230,7 +216,7 @@ async def get_conversation(
 
 @router.get("/conversations", response_model=List[ConversationHistory])
 async def get_user_conversations(
-    user_id: str = Depends(get_user_id_from_header)
+    user_id: str = Depends(get_current_user)
 ):
     """Get all conversations for the current user"""
     try:
@@ -251,7 +237,7 @@ async def get_user_conversations(
 @router.delete("/conversations/{conversation_id}")
 async def delete_conversation(
     conversation_id: str,
-    user_id: str = Depends(get_user_id_from_header)
+    user_id: str = Depends(get_current_user)
 ):
     """Delete a conversation"""
     try:
@@ -297,7 +283,7 @@ async def add_knowledge_entry(
     content: str,
     category: str,
     metadata: Optional[Dict[str, Any]] = None,
-    user_id: str = Depends(get_user_id_from_header)
+    user_id: str = Depends(get_current_user)
 ):
     """Add new entry to knowledge base (admin function)"""
     try:
@@ -320,7 +306,7 @@ async def add_knowledge_entry(
 async def search_knowledge_base(
     query: str,
     top_k: int = 5,
-    user_id: str = Depends(get_user_id_from_header)
+    user_id: str = Depends(get_current_user)
 ):
     """Search knowledge base for relevant information"""
     try:

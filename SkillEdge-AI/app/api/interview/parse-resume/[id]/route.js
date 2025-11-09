@@ -1,39 +1,27 @@
-import { auth } from "@clerk/nextjs/server";
+import { cookies } from 'next/headers';
 import { NextResponse } from "next/server";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-// Helper function to get a safe user ID
-async function getSafeUserId() {
-  try {
-    const { userId } = await auth();
-    if (!userId) return null;
-
-    // Clean up userId to ensure it's safe for DB
-    return userId.replace(/[^a-zA-Z0-9_-]/g, '');
-  } catch (error) {
-    console.error("Error getting user ID:", error);
-    return null;
-  }
-}
-
 // GET: Parse resume for interview
 export async function GET(request, { params }) {
   try {
-    const userId = await getSafeUserId();
-    const { id } = params;
+    // Get JWT token from cookies
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth_token')?.value;
+    const { id } = await params;
 
-    if (!userId) {
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("Parsing resume for user:", userId, "file_id:", id);
+    console.log("Parsing resume for file_id:", id);
 
     // Call FastAPI backend
     const response = await fetch(`${API_URL}/api/interview/parse-resume/${id}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${userId}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });

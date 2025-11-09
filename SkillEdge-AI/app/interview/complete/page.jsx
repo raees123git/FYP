@@ -6,10 +6,10 @@ import { motion } from "framer-motion";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { generateBasicNonVerbalAnalysis, createComprehensiveNonVerbalReport } from "@/app/lib/nonverbal";
 import { generateOverallAnalysis } from "@/app/lib/overall";
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth-context";
 
 export default function InterviewComplete() {
-  const { user } = useUser();
+  const { user, isAuthenticated } = useAuth();
   const [data, setData] = useState({ questions: [], answers: [] });
   const [showWordCount, setShowWordCount] = useState(false);
   const [wordFrequency, setWordFrequency] = useState({});
@@ -589,12 +589,11 @@ export default function InterviewComplete() {
         console.log('⚠️ Connection test failed, but continuing with save:', pingError.message);
       }
 
-      // Proceed with save
-      const response = await fetch('http://localhost:8000/api/reports/save-interview', {
+      // Proceed with save - use Next.js API route which handles JWT authentication
+      const response = await fetch('/api/reports/save-interview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.id}`,
         },
         body: payloadString,
       });

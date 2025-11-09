@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, MessageCircle, Minimize2, RefreshCw, Bot, User, Brain, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -28,7 +28,7 @@ const ChatbotWidget = () => {
   const [includeReports, setIncludeReports] = useState(false);
   
   const messagesEndRef = useRef(null);
-  const { user, isLoaded } = useUser();
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,7 +39,7 @@ const ChatbotWidget = () => {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading || !user) return;
+    if (!input.trim() || isLoading || !isAuthenticated) return;
 
     const userMessage = {
       id: Date.now().toString(),
@@ -53,11 +53,12 @@ const ChatbotWidget = () => {
     setIsLoading(true);
 
     try {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chatbot/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.id}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           message: userMessage.content,
@@ -129,7 +130,7 @@ const ChatbotWidget = () => {
     });
   };
 
-  if (!isLoaded) return null;
+  if (authLoading) return null;
 
   return (
     <>

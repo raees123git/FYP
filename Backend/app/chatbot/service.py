@@ -135,12 +135,12 @@ class ChatbotService:
                 "metadata": {"type": "interview_types", "importance": "high"}
             },
             {
-                "content": "The platform provides three detailed reports after each interview: Verbal Report analyzing your speech patterns, content quality, confidence level, and communication clarity; Non-Verbal Report examining your body language, facial expressions, gestures, and overall presentation; Overall Report combining both analyses with actionable insights and improvement recommendations.",
+                "content": "The platform provides three detailed reports after each interview: Verbal Report analyzing your answers correctness, answers deth, domain knowledge etc; Non-Verbal Report for examing speech patterns, content quality, confidence level, and communication clarity and overall presentation; Overall Report combining both analyses with actionable insights and improvement recommendations.",
                 "category": "reports",
                 "metadata": {"type": "report_types", "importance": "high"}
             },
             {
-                "content": "SkillEdge-AI uses advanced AI technologies including speech recognition, natural language processing, computer vision, and machine learning to provide accurate and detailed feedback on your interview performance.",
+                "content": "SkillEdge-AI uses advanced AI technologies including speech recognition, natural language processing, and machine learning to provide accurate and detailed feedback on your interview performance.",
                 "category": "technology",
                 "metadata": {"type": "ai_capabilities", "importance": "medium"}
             },
@@ -150,17 +150,17 @@ class ChatbotService:
                 "metadata": {"type": "how_to_use", "importance": "high"}
             },
             {
-                "content": "SkillEdge-AI helps improve your interview performance by providing objective feedback on areas like speaking pace, clarity, confidence, body language, eye contact, and content quality. The platform identifies specific areas for improvement and provides actionable recommendations.",
+                "content": "SkillEdge-AI helps improve your interview performance by providing objective feedback on areas like speaking pace, clarity, confidence and content quality. The platform identifies specific areas for improvement and provides actionable recommendations.",
                 "category": "benefits",
                 "metadata": {"type": "improvement_areas", "importance": "high"}
             },
             {
-                "content": "The Verbal Report analyzes various aspects of your speech including fluency, pace, volume, clarity, filler words usage, vocabulary richness, grammar accuracy, and overall communication effectiveness. It provides specific scores and detailed feedback for each aspect.",
+                "content": "The Verbal Report analyzes your answers correctness, domain knowledge, answers depth etc.",
                 "category": "verbal_analysis",
                 "metadata": {"type": "verbal_metrics", "importance": "medium"}
             },
             {
-                "content": "The Non-Verbal Report examines your body language including posture, gestures, facial expressions, eye contact, hand movements, and overall presentation. It analyzes confidence indicators and professional presence throughout the interview.",
+                "content": "The Non-Verbal Report analyzes various aspects of your speech including fluency, pace, volume, clarity, filler words usage, vocabulary richness, grammar accuracy, and overall communication effectiveness. It provides specific scores and detailed feedback for each aspect",
                 "category": "nonverbal_analysis",
                 "metadata": {"type": "nonverbal_metrics", "importance": "medium"}
             },
@@ -170,12 +170,12 @@ class ChatbotService:
                 "metadata": {"type": "who_should_use", "importance": "medium"}
             },
             {
-                "content": "Common issues identified by SkillEdge-AI include speaking too fast or too slow, using excessive filler words, poor eye contact, nervous gestures, unclear articulation, lack of confidence in voice, inappropriate body language, and insufficient preparation for specific question types.",
+                "content": "Common issues identified by SkillEdge-AI include speaking too fast or too slow, using excessive filler words, unclear articulation, lack of confidence in voice, and insufficient preparation for specific question types.",
                 "category": "common_issues",
                 "metadata": {"type": "typical_problems", "importance": "high"}
             },
             {
-                "content": "SkillEdge-AI provides personalized improvement strategies based on your specific performance patterns. These may include speech exercises, body language training, confidence-building techniques, content structure improvements, and practice recommendations tailored to your weaknesses.",
+                "content": "SkillEdge-AI provides personalized improvement strategies based on your specific performance patterns. These may include speech exercises, confidence-building techniques, content structure improvements, and practice recommendations tailored to your weaknesses.",
                 "category": "improvement_strategies",
                 "metadata": {"type": "personalized_help", "importance": "high"}
             },
@@ -322,7 +322,10 @@ Guidelines:
 
 User Question: {query}
 
-Please provide a helpful and relevant response:"""
+Please provide a helpful and relevant response:
+
+Note: as you are a chatbot assistane, please give short concise and to the point answers
+"""
 
             # Generate response using Gemini
             response = await asyncio.to_thread(
@@ -353,7 +356,7 @@ Please provide a helpful and relevant response:"""
             simple_responses = ["thanks", "thank you", "ok", "okay", "yes", "no", "sure", "alright"]
             
             if query_lower in greetings or any(greeting in query_lower for greeting in greetings):
-                return "Hi! I'm here to help you analyze your interview performance. You can ask me specific questions about your reports, like:\n\n• 'Why did I score low on verbal skills?'\n• 'How can I improve my speaking pace?'\n• 'What does my body language analysis show?'\n• 'Give me tips based on my performance'\n\nWhat would you like to know about your interview results?"
+                return "Hi! I'm here to help you analyze your interview performance. You can ask me specific questions about your reports, like:\n\n• 'Why did I score low on verbal skills?'\n• 'How can I improve my speaking pace?'\n• '\n• 'Give me tips based on my performance'\n\nWhat would you like to know about your interview results?"
             
             if query_lower in simple_responses:
                 return "Great! Feel free to ask me any specific questions about your interview performance. I can help explain your scores, identify areas for improvement, or provide personalized recommendations based on your reports."
@@ -386,7 +389,7 @@ Please provide a helpful and relevant response:"""
             focus_area = "general"
             if any(word in query_lower for word in ["speak", "voice", "talk", "verbal", "communication", "speak slow", "speak fast", "filler"]):
                 focus_area = "verbal"
-            elif any(word in query_lower for word in ["body", "gesture", "eye", "posture", "nonverbal", "non-verbal", "nervous"]):
+            elif any(word in query_lower for word in ["posture", "nonverbal", "non-verbal", "nervous"]):
                 focus_area = "nonverbal"
             
             logger.info(f"Focus area determined: {focus_area}")

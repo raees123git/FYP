@@ -1,69 +1,33 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-const isProtectedRoute = createRouteMatcher([
-  "/dashboard(.*)",
-  "/resume(.*)",
-  "/interview(.*)",
-  "/ai-cover-letter(.*)",
-  "/onboarding(.*)",
-]);
+export function middleware(request) {
+  const { pathname } = request.nextUrl;
 
-const isProfileUpdateRoute = createRouteMatcher([
-  "/profile/update(.*)",
-]);
+  // Public paths that don't require authentication
+  const publicPaths = ['/', '/sign-in', '/sign-up'];
+  const isPublicPath = publicPaths.some(path => pathname.startsWith(path) || pathname === path);
 
-const isAuthRoute = createRouteMatcher([
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-]);
-
-export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
-
-  if (!userId && isProtectedRoute(req)) {
-    const { redirectToSignIn } = await auth();
-    return redirectToSignIn();
+  // Skip middleware for static files and API routes
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next();
   }
 
-  // If user is authenticated and coming from auth routes (sign-in/sign-up)
-  if (userId && isAuthRoute(req)) {
-    return NextResponse.redirect(new URL("/profile/update", req.url));
+  // Allow public paths
+  if (isPublicPath) {
+    return NextResponse.next();
   }
 
-  // If user is authenticated, check if they need to complete their profile
-  if (userId && isProtectedRoute(req) && !isProfileUpdateRoute(req)) {
-    try {
-      // Check user profile via API call
-      const response = await fetch(`${req.nextUrl.origin}/api/user/profile`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user profile');
-      }
-
-      const user = await response.json();
-
-      // If user hasn't completed their profile, redirect to profile update
-      if (!user?.industry || !user?.skills) {
-        return NextResponse.redirect(new URL("/profile/update", req.url));
-      }
-    } catch (error) {
-      console.error("Error checking user profile:", error);
-    }
-  }
-
+  // For protected routes, redirect to sign-in
+  // Note: Client-side auth check will be done by the AuthProvider
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

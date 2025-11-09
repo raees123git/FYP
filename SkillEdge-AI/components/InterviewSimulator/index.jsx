@@ -39,7 +39,7 @@ export default function InterviewSimulatorWithVoice() {
       ? searchParams.get("role") || "Software Engineer"
       : type === "behavioral"
         ? "behavioral"
-        : searchParams.get("position") || "Software Engineer",
+        : "Resume-Based Interview",  // Generic role for resume interviews
     [type, searchParams]
   );
   const resumeId = searchParams.get("resume_id");

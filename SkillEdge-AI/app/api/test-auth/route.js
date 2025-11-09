@@ -1,65 +1,67 @@
 import { NextResponse } from 'next/server';
-import { currentUser, getAuth } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request) {
   try {
     console.log('Test auth endpoint called');
     
-    // Try multiple ways to get authentication
-    let userId = null;
-    let authMethod = 'none';
+    // Get JWT token from cookies
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth_token')?.value;
     
+    if (!token) {
+      return NextResponse.json({
+        success: false,
+        authenticated: false,
+        message: 'No authentication token found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Validate token with backend
     try {
-      // Method 1: Try getAuth
-      const auth = getAuth(request);
-      userId = auth?.userId;
-      if (userId) authMethod = 'getAuth';
-      console.log('Method 1 (getAuth):', { userId, hasAuth: !!auth });
-    } catch (err) {
-      console.log('Method 1 failed:', err.message);
-    }
-    
-    if (!userId) {
-      try {
-        // Method 2: Try currentUser
-        const user = await currentUser();
-        userId = user?.id;
-        if (userId) authMethod = 'currentUser';
-        console.log('Method 2 (currentUser):', { userId, hasUser: !!user });
-      } catch (err) {
-        console.log('Method 2 failed:', err.message);
-      }
-    }
-    
-    if (!userId) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'No user ID found with any method',
-          authResult: 'No authentication',
-          clerkVersion: '@clerk/nextjs ^6.18.2'
+      const response = await fetch('http://127.0.0.1:8000/api/auth/validate', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        { status: 401 }
-      );
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        return NextResponse.json({
+          success: true,
+          authenticated: true,
+          user: userData,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        return NextResponse.json({
+          success: false,
+          authenticated: false,
+          message: 'Token validation failed',
+          status: response.status,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (err) {
+      console.error('Token validation error:', err);
+      return NextResponse.json({
+        success: false,
+        authenticated: false,
+        message: 'Error validating token',
+        error: err.message,
+        timestamp: new Date().toISOString()
+      }, { status: 500 });
     }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Authentication working',
-      userId: userId,
-      authMethod: authMethod,
-      clerkVersion: '@clerk/nextjs ^6.18.2',
-      timestamp: new Date().toISOString()
-    });
-
   } catch (error) {
     console.error('Error in test-auth:', error);
     return NextResponse.json(
       { 
         success: false, 
         error: error.message,
-        stack: error.stack,
-        clerkVersion: '@clerk/nextjs ^6.18.2'
+        stack: error.stack
       },
       { status: 500 }
     );
