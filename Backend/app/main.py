@@ -177,52 +177,77 @@ async def generate_question(request: QuestionRequest):
     
     print(f"Generating questions for type: {request.type}, role: {request.role}")
     
-    # Check if this is a resume-based interview
-    if request.type == "resume" and request.resume_content:
-        # Create a specialized prompt for resume-based questions
-        prompt = (
-            "You are a helpful assistant specialized in generating interview questions from a resume. \n\n"
-            "Please generate questions based on the candidate's resume (as the content of resume is provided).\n\n"
-            "Given the following inputs:\n"
-            f"Interview Type: {request.type}\n"
-            f"Role: {request.role}\n\n"
-            f"Resume Content:\n{request.resume_content[:2500]}\n\n"
-            f"Please generate exactly {request.count} unique interview questions tailored to the above.\n"
-            "– Output only the questions (no answers, no extra commentary).\n"
-            "– Number them sequentially, in this exact template:\n\n"
-            "Question1: <your first question here>\n"
-            "Question2: <your second question here>\n"
-            "Question3: <…>\n"
-            "Question4: <…>\n"
-            "Question5: <…>\n"
-            "Question6: <…>\n"
-            "Question7: <your seventh question here>\n"
-            "note: These are just a syntax for you to follow, suppose if user ask for 5 questions, then generate 5 questions according to the template, always starting from Question1"
-            "note: follow the format above of printing Question1 and then the question. it is necessary to follow the format\n"
+    # Use Gemini API for resume and behavioral interviews
+    if request.type in ["resume", "behavioral"]:
+        if not GEMINI_API_KEY:
+            raise HTTPException(status_code=500, detail="Gemini API key not configured")
         
-        )
-        #     else:
-        # # Original prompt for technical/behavioral interviews
-        # prompt = (
-        # # "You are an expert interviewer conducting a resume-based interview.\n\n"
-        #     # "Given the following resume content and target position, generate personalized interview questions:\n\n"
-        #     # f"Target Position: {request.role}\n\n"
-        #     # f"Resume Content:\n{request.resume_content[:2500]}\n\n"  # Limit resume content
-        #     # f"Please generate exactly {request.count} unique, personalized interview questions based on:"
-        #     # "\n- The candidate's specific experience mentioned in the resume"
-        #     # "\n- Their listed skills and technologies"
-        #     # "\n- Their projects and achievements"
-        #     # "\n- Gaps or areas that need clarification"
-        #     # "\n- How their background aligns with the target position\n\n"
-        #     # "Questions should be specific to this candidate's background.\n"
-        #     # "– Output only the questions (no answers, no extra commentary).\n"
-        #     # "– Number them sequentially, in this exact template:\n\n"
-        #     # "Question1: <your first question here>\n"
-        #     # "Question2: <your second question here>\n"
-        #     # "(continue for all questions requested)\n"
-        # )
+        try:
+            # Create specialized prompt based on interview type
+            if request.type == "resume" and request.resume_content:
+                prompt = (
+                    "You are a helpful assistant specialized in generating interview questions from a resume.\n\n"
+                    "Please generate questions based on the candidate's resume (as the content of resume is provided).\n\n"
+                    "Given the following inputs:\n"
+                    f"Interview Type: {request.type}\n"
+                    f"Role: {request.role}\n\n"
+                    f"Resume Content:\n{request.resume_content[:2500]}\n\n"
+                    f"Please generate exactly {request.count} unique interview questions tailored to the above.\n"
+                    "– Output only the questions (no answers, no extra commentary).\n"
+                    "– Number them sequentially, in this exact template:\n\n"
+                    "Question1: <your first question here>\n"
+                    "Question2: <your second question here>\n"
+                    "Question3: <…>\n"
+                    "Question4: <…>\n"
+                    "Question5: <…>\n"
+                    "Question6: <…>\n"
+                    "Question7: <your seventh question here>\n"
+                    "note: These are just a syntax for you to follow, suppose if user ask for 5 questions, then generate 5 questions according to the template, always starting from Question1\n"
+                    "note: follow the format above of printing Question1 and then the question. it is necessary to follow the format\n"
+                )
+            else:
+                # Behavioral interview
+                prompt = (
+                    "You are a helpful assistant specialized in generating behavioral interview questions.\n\n"
+                    "Given the following inputs:\n"
+                    f"Interview Type: {request.type}\n"
+                    f"Role: {request.role}\n\n"
+                    f"Please generate exactly {request.count} unique behavioral interview questions tailored to the above role.\n"
+                    "Focus on questions that assess soft skills, teamwork, problem-solving, leadership, and past experiences.\n"
+                    "– Output only the questions (no answers, no extra commentary).\n"
+                    "– Number them sequentially, in this exact template:\n\n"
+                    "Question1: <your first question here>\n"
+                    "Question2: <your second question here>\n"
+                    "Question3: <…>\n"
+                    "Question4: <…>\n"
+                    "Question5: <…>\n"
+                    "Question6: <…>\n"
+                    "Question7: <your seventh question here>\n"
+                    "note: These are just a syntax for you to follow, suppose if user ask for 5 questions, then generate 5 questions according to the template, always starting from Question1\n"
+                    "note: follow the format above of printing Question1 and then the question. it is necessary to follow the format\n"
+                )
+            
+            print(f"Using Gemini API for {request.type} interview")
+            print(f"Questions demanded by user are {request.count}")
+            
+            # Use Gemini API to generate questions
+            response = gemini_model.generate_content(prompt)
+            generated_text = response.text
+            
+            print("Gemini response:", generated_text)
+            
+            # Use a regex to pull out each "QuestionN: ..." line
+            question_text = re.findall(r"(?m)(?:Question\d+:|\d+\.)\s*(.+)", generated_text)
+            question_text = question_text[:request.count]  # Limit to requested count
+            
+            return {"question": question_text}
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Gemini API failed: {str(e)}")
+    
+    # Use local model for technical interviews
     else:
-        # Original prompt for technical/behavioral interviews
+        # Original prompt for technical interviews
         prompt = (
             "You are a helpful assistant specialized in generating interview questions.\n\n"
             "Given the following inputs:\n"
@@ -238,35 +263,35 @@ async def generate_question(request: QuestionRequest):
             "Question5: <…>\n"
             "Question6: <…>\n"
             "Question7: <your seventh question here>\n"
-            "note: These are just a syntax for you to follow, suppose if user ask for 5 questions, then generate 5 questions according to the template, always starting from Question1"
+            "note: These are just a syntax for you to follow, suppose if user ask for 5 questions, then generate 5 questions according to the template, always starting from Question1\n"
             "note: follow the format above of printing Question1 and then the question. it is necessary to follow the format\n"
         )
 
-    print(f"You are an interviewer conducting a {request.type} interview for the position of {request.role}.\n")
-    print(f"Questions demanded by user are {request.count}")
-    print(request.role)
+        print(f"Using local model for {request.type} interview")
+        print(f"Questions demanded by user are {request.count}")
+        print(request.role)
 
-    try:
-        outputs = text_generator(
-            prompt,
-            max_new_tokens=100,
-            do_sample=True,
-            temperature=0.7,
-            pad_token_id=tokenizer.eos_token_id,
-            eos_token_id=tokenizer.eos_token_id,
-            num_return_sequences=1
-        )
-        generated = outputs[0]["generated_text"]
-        question_text = generated[len(prompt):].strip() or generated.strip()
+        try:
+            outputs = text_generator(
+                prompt,
+                max_new_tokens=100,
+                do_sample=True,
+                temperature=0.7,
+                pad_token_id=tokenizer.eos_token_id,
+                eos_token_id=tokenizer.eos_token_id,
+                num_return_sequences=1
+            )
+            generated = outputs[0]["generated_text"]
+            question_text = generated[len(prompt):].strip() or generated.strip()
 
-        # Use a regex to pull out each "QuestionN: ..." line
-        print(question_text)
-        question_text = re.findall(r"(?m)(?:Question\d+:|\d+\.)\s*(.+)", question_text)
-        question_text = question_text[:request.count]  # Limit to requested count
-        return {"question": question_text}
+            # Use a regex to pull out each "QuestionN: ..." line
+            print(question_text)
+            question_text = re.findall(r"(?m)(?:Question\d+:|\d+\.)\s*(.+)", question_text)
+            question_text = question_text[:request.count]  # Limit to requested count
+            return {"question": question_text}
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Model inference failed: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Model inference failed: {str(e)}")
 
 
 # @app.post("/api/interview/generate-question")
