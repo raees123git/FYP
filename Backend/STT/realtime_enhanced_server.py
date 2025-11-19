@@ -50,7 +50,7 @@ stream = sd.InputStream(
     callback=audio_callback,
 )
 
-vad = webrtcvad.Vad(2)  # 0–3 (3 = most aggressive)
+vad = webrtcvad.Vad(3)  # 0–3 (3 = most aggressive) - increased to filter out noise better
 
 def float_to_int16(x):
     x = np.clip(x, -1.0, 1.0)
@@ -75,13 +75,15 @@ def is_speech(frame_f32):
     pcm16 = float_to_int16(frame_f32).tobytes()
     return vad.is_speech(pcm16, SAMPLE_RATE)
 
-def has_significant_audio(audio_chunk, energy_threshold=0.002):
+def has_significant_audio(audio_chunk, energy_threshold=0.01):
+    """Check if audio chunk has significant energy to be considered speech.
+    Increased threshold to reduce false positives from background noise."""
     rms = np.sqrt(np.mean(audio_chunk ** 2))
     return rms > energy_threshold
 
 def collect_utterances(
-    max_silence_ms=300,
-    min_voiced_ms=200,
+    max_silence_ms=500,      # Increased to avoid splitting on brief pauses
+    min_voiced_ms=250,       # Increased to require more substantial speech
     prepad_ms=100,
     max_utterance_ms=5000,
 ):
@@ -159,26 +161,27 @@ def transcribe_stream():
                 except Exception as e:
                     print(f"Audio analysis warning: {e}")
 
-            # Transcribe
+            # Transcribe with stricter settings to reduce hallucinations
             t0 = time.time()
             segments, info = model.transcribe(
                 audio_chunk,
                 language="en",
                 task="transcribe",
-                beam_size=10,
-                best_of=10,
-                temperature=0.0,
-                vad_filter=True,
-                condition_on_previous_text=True,
-                compression_ratio_threshold=2.0,
-                log_prob_threshold=-0.5,
-                no_speech_threshold=0.6,
+                beam_size=5,                        # Reduced for faster, more focused decoding
+                best_of=5,                          # Reduced to avoid over-exploration
+                temperature=0.0,                    # Deterministic
+                vad_filter=True,                    # Keep VAD filtering
+                condition_on_previous_text=False,   # Disabled to reduce context-based hallucinations
+                compression_ratio_threshold=2.0,    # Reject overly repetitive text
+                log_prob_threshold=-0.8,            # Stricter - reject low confidence transcriptions
+                no_speech_threshold=0.7,            # Increased - more aggressive silence detection
                 word_timestamps=False,
             )
             t1 = time.time()
             elapsed = t1 - t0
 
-            if hasattr(info, "no_speech_prob") and info.no_speech_prob > 0.8:
+            # More aggressive no-speech filtering
+            if hasattr(info, "no_speech_prob") and info.no_speech_prob > 0.6:
                 continue
 
             for seg in segments:
@@ -189,8 +192,21 @@ def transcribe_stream():
                 if not text:
                     continue
 
-                blacklist = ["thanks for watching!", "thank you for watching!", "subscribe", "bye."]
-                if text.lower() in blacklist:
+                # Expanded blacklist of common hallucinations
+                blacklist = [
+                    "thanks for watching!", "thank you for watching!", 
+                    "subscribe", "bye.", "please subscribe",
+                    "like and subscribe", "don't forget to subscribe",
+                    ".", "?", "thank you.", "thanks.",
+                    "you", "the", "and", "a", "i"  # Filter out single common words
+                ]
+                
+                # Skip if text is in blacklist or too short (likely noise)
+                if text.lower() in blacklist or len(text) < 3:
+                    continue
+                
+                # Skip if segment confidence is too low
+                if hasattr(seg, 'avg_logprob') and seg.avg_logprob < -1.0:
                     continue
 
                 # Print to console

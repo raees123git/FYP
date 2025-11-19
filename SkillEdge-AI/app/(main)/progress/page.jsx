@@ -72,17 +72,17 @@ export default function ProgressDashboard() {
   };
 
   const prepareSkillBarData = () => {
-    if (!dashboardData || !dashboardData.skill_breakdown) return [];
+    if (!dashboardData || !dashboardData.verbal_breakdown) return [];
 
-    console.log("🔍 Raw skill_breakdown:", dashboardData.skill_breakdown);
-    console.log("🔍 Entries:", Object.entries(dashboardData.skill_breakdown));
+    console.log("🔍 Raw verbal_breakdown:", dashboardData.verbal_breakdown);
+    console.log("🔍 Entries:", Object.entries(dashboardData.verbal_breakdown));
     
-    const data = Object.entries(dashboardData.skill_breakdown).map(([key, value]) => ({
+    const data = Object.entries(dashboardData.verbal_breakdown).map(([key, value]) => ({
       skill: key.replace(/_/g, " ").charAt(0).toUpperCase() + key.replace(/_/g, " ").slice(1),
       average_score: value.average_score,
     }));
     
-    console.log("📊 Bar chart data:", data);
+    console.log("📊 Bar chart data (verbal):", data);
     return data;
   };
 
@@ -217,7 +217,7 @@ export default function ProgressDashboard() {
         <div className="mb-8">
           <SkillBarChart
             data={barData}
-            title="Average Scores by Skill Category"
+            title="Verbal Skills Analysis"
           />
         </div>
 

@@ -318,6 +318,98 @@ async def get_analytics_dashboard(user_id: str = Depends(get_current_user)):
                     "scores_history": scores,
                 }
         
+        # Calculate verbal-focused breakdown for separate visualization
+        verbal_skill_scores = {
+            "concepts_understanding": [],
+            "domain_knowledge": [],
+            "answer_correctness": [],
+            "depth_of_explanation": [],
+            "response_structure": [],
+            "vocabulary_richness": [],
+        }
+        
+        for interview in interviews:
+            interview_id = str(interview["_id"])
+            verbal = verbal_lookup.get(interview_id, {})
+            
+            if verbal and "metrics" in verbal:
+                metrics = verbal.get("metrics", {})
+                
+                # Concepts Understanding
+                if "concepts_understanding" in metrics:
+                    concepts = metrics["concepts_understanding"]
+                    score = concepts.get("score", 0) if isinstance(concepts, dict) else concepts
+                    if score > 0:
+                        verbal_skill_scores["concepts_understanding"].append(score)
+                
+                # Domain Knowledge
+                if "domain_knowledge" in metrics:
+                    domain = metrics["domain_knowledge"]
+                    score = domain.get("score", 0) if isinstance(domain, dict) else domain
+                    if score > 0:
+                        verbal_skill_scores["domain_knowledge"].append(score)
+                
+                # Answer Correctness
+                if "answer_correctness" in metrics:
+                    correctness = metrics["answer_correctness"]
+                    score = correctness.get("score", 0) if isinstance(correctness, dict) else correctness
+                    if score > 0:
+                        verbal_skill_scores["answer_correctness"].append(score)
+                
+                # Depth of Explanation
+                if "depth_of_explanation" in metrics:
+                    depth = metrics["depth_of_explanation"]
+                    score = depth.get("score", 0) if isinstance(depth, dict) else depth
+                    if score > 0:
+                        verbal_skill_scores["depth_of_explanation"].append(score)
+                
+                # Response Structure
+                if "response_structure" in metrics:
+                    response = metrics["response_structure"]
+                    score = response.get("score", 0) if isinstance(response, dict) else response
+                    if score > 0:
+                        verbal_skill_scores["response_structure"].append(score)
+                
+                # Vocabulary Richness
+                if "vocabulary_richness" in metrics:
+                    vocab = metrics["vocabulary_richness"]
+                    score = vocab.get("score", 0) if isinstance(vocab, dict) else vocab
+                    if score > 0:
+                        verbal_skill_scores["vocabulary_richness"].append(score)
+        
+        # Calculate verbal breakdown with same structure as skill_breakdown
+        verbal_breakdown = {}
+        print(f"🔍 Verbal skill scores collected: {[(skill, len(scores)) for skill, scores in verbal_skill_scores.items()]}")
+        
+        for skill, scores in verbal_skill_scores.items():
+            if scores:
+                avg_score = statistics.mean(scores)
+                
+                # Calculate trend (comparing first half vs second half)
+                mid_point = len(scores) // 2
+                if len(scores) >= 4:
+                    first_half = statistics.mean(scores[:mid_point]) if mid_point > 0 else 0
+                    second_half = statistics.mean(scores[mid_point:]) if len(scores[mid_point:]) > 0 else 0
+                    improvement = second_half - first_half
+                    
+                    if improvement > 5:
+                        trend = "improving"
+                    elif improvement < -5:
+                        trend = "declining"
+                    else:
+                        trend = "stable"
+                else:
+                    trend = "insufficient_data"
+                    improvement = 0
+                
+                verbal_breakdown[skill] = {
+                    "average_score": round(avg_score, 2),
+                    "trend": trend,
+                    "improvement": round(improvement, 2),
+                    "total_sessions": len(scores),
+                    "scores_history": scores,
+                }
+        
         # Recent performance (last 5 interviews)
         recent_trends = trends[-5:] if len(trends) >= 5 else trends
         
@@ -344,6 +436,7 @@ async def get_analytics_dashboard(user_id: str = Depends(get_current_user)):
                 "trends": trends,
                 "recent_performance": recent_performance,
                 "skill_breakdown": skill_breakdown,
+                "verbal_breakdown": verbal_breakdown,
                 "statistics": {
                     "best_score": round(best_score, 2),
                     "average_score": round(avg_score, 2),
