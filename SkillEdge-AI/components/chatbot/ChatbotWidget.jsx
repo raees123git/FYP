@@ -25,7 +25,10 @@ const ChatbotWidget = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
-  const [includeReports, setIncludeReports] = useState(false);
+  const [chatMode, setChatMode] = useState('general'); // 'general', 'reports', or 'resume'
+  const [resumeAvailable, setResumeAvailable] = useState(false);
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [resumeStatus, setResumeStatus] = useState(null);
   
   const messagesEndRef = useRef(null);
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -37,6 +40,71 @@ const ChatbotWidget = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkResumeStatus();
+    }
+  }, [isAuthenticated]);
+
+  const checkResumeStatus = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      console.log('Checking resume status...');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chatbot/resume/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Resume status:', data);
+        setResumeStatus(data);
+        setResumeAvailable(data.can_use_resume_chat);
+        
+        // Auto-reindex if resume exists but not indexed
+        if (data.has_resume_file && !data.has_resume_index && !isIndexing) {
+          console.log('Resume needs indexing, triggering automatic reindex...');
+          await reindexResume();
+        }
+      } else {
+        console.error('Resume status check failed:', response.status);
+      }
+    } catch (error) {
+      console.error('Error checking resume status:', error);
+    }
+  };
+
+  const reindexResume = async () => {
+    try {
+      setIsIndexing(true);
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chatbot/resume/reindex`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Resume reindexed successfully:', data);
+        toast.success('Resume indexed successfully!');
+        // Recheck status after indexing
+        await checkResumeStatus();
+      } else {
+        const error = await response.json();
+        console.error('Reindex failed:', error);
+        toast.error('Failed to index resume.');
+      }
+    } catch (error) {
+      console.error('Error reindexing resume:', error);
+      toast.error('Failed to index resume.');
+    } finally {
+      setIsIndexing(false);
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading || !isAuthenticated) return;
@@ -63,7 +131,8 @@ const ChatbotWidget = () => {
         body: JSON.stringify({
           message: userMessage.content,
           conversation_id: conversationId,
-          include_reports: includeReports
+          include_reports: chatMode === 'reports',
+          include_resume: chatMode === 'resume'
         }),
       });
 
@@ -114,13 +183,13 @@ const ChatbotWidget = () => {
       {
         id: '1',
         role: 'assistant',
-        content: 'Hi! I\'m your SkillEdge-AI assistant. I can help you with questions about our platform or analyze your interview reports. How can I assist you today?',
+        content: 'Hi! I\'m your SkillEdge-AI assistant. I can help you with questions about our platform, analyze your interview reports, or answer questions about your resume. How can I assist you today?',
         timestamp: new Date(),
         sources: ['SkillEdge-AI Knowledge Base']
       }
     ]);
     setConversationId(null);
-    setIncludeReports(false);
+    setChatMode('general');
   };
 
   const formatTime = (timestamp) => {
@@ -200,33 +269,46 @@ const ChatbotWidget = () => {
               <>
                 {/* Mode Toggle */}
                 <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant={!includeReports ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setIncludeReports(false)}
-                      className="flex items-center space-x-1 text-xs"
-                    >
-                      <Brain className="h-3 w-3" />
-                      <span>General Q&A</span>
-                    </Button>
-                    <Button
-                      variant={includeReports ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setIncludeReports(true)}
-                      className="flex items-center space-x-1 text-xs"
-                    >
-                      <BarChart3 className="h-3 w-3" />
-                      <span>Report Analysis</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearConversation}
-                      className="ml-auto h-7 w-7 p-0"
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                    </Button>
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant={chatMode === 'general' ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setChatMode('general')}
+                        className="flex items-center space-x-1 text-xs flex-1"
+                      >
+                        <Brain className="h-3 w-3" />
+                        <span>General</span>
+                      </Button>
+                      <Button
+                        variant={chatMode === 'reports' ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setChatMode('reports')}
+                        className="flex items-center space-x-1 text-xs flex-1"
+                      >
+                        <BarChart3 className="h-3 w-3" />
+                        <span>Reports</span>
+                      </Button>
+                      <Button
+                        variant={chatMode === 'resume' ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setChatMode('resume')}
+                        className="flex items-center space-x-1 text-xs flex-1"
+                        disabled={!resumeAvailable}
+                        title={!resumeAvailable ? "Upload a resume in your profile" : "Ask about your resume"}
+                      >
+                        <User className="h-3 w-3" />
+                        <span>Resume</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearConversation}
+                        className="h-7 w-7 p-0"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -316,9 +398,11 @@ const ChatbotWidget = () => {
                       onChange={(e) => setInput(e.target.value)}
                       onKeyPress={handleKeyPress}
                       placeholder={
-                        includeReports 
+                        chatMode === 'reports'
                           ? "Ask about your interview reports..." 
-                          : "Ask about SkillEdge-AI..."
+                          : chatMode === 'resume'
+                            ? "Ask about your resume..."
+                            : "Ask about SkillEdge-AI..."
                       }
                       disabled={isLoading || !user}
                       className="flex-1"

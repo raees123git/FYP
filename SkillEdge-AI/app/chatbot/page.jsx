@@ -25,8 +25,11 @@ const ChatbotPage = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
-  const [includeReports, setIncludeReports] = useState(false);
+  const [chatMode, setChatMode] = useState('general'); // 'general', 'reports', or 'resume'
   const [conversations, setConversations] = useState([]);
+  const [resumeAvailable, setResumeAvailable] = useState(false);
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [resumeStatus, setResumeStatus] = useState(null);
   
   const messagesEndRef = useRef(null);
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -42,8 +45,68 @@ const ChatbotPage = () => {
   useEffect(() => {
     if (isAuthenticated) {
       loadConversations();
+      checkResumeStatus();
     }
   }, [isAuthenticated]);
+
+  const checkResumeStatus = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      console.log('Checking resume status...');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chatbot/resume/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Resume status:', data);
+        setResumeStatus(data);
+        setResumeAvailable(data.can_use_resume_chat);
+        
+        // Auto-reindex if resume exists but not indexed
+        if (data.has_resume_file && !data.has_resume_index && !isIndexing) {
+          console.log('Resume needs indexing, triggering automatic reindex...');
+          await reindexResume();
+        }
+      } else {
+        console.error('Resume status check failed:', response.status);
+      }
+    } catch (error) {
+      console.error('Error checking resume status:', error);
+    }
+  };
+
+  const reindexResume = async () => {
+    try {
+      setIsIndexing(true);
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chatbot/resume/reindex`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Resume reindexed successfully:', data);
+        toast.success(`Resume indexed successfully! ${data.chunks} chunks created.`);
+        // Recheck status after indexing
+        await checkResumeStatus();
+      } else {
+        const error = await response.json();
+        console.error('Reindex failed:', error);
+        toast.error('Failed to index resume. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error reindexing resume:', error);
+      toast.error('Failed to index resume. Please try again.');
+    } finally {
+      setIsIndexing(false);
+    }
+  };
 
   const loadConversations = async () => {
     try {
@@ -88,7 +151,8 @@ const ChatbotPage = () => {
         body: JSON.stringify({
           message: userMessage.content,
           conversation_id: conversationId,
-          include_reports: includeReports
+          include_reports: chatMode === 'reports',
+          include_resume: chatMode === 'resume'
         }),
       });
 
@@ -139,7 +203,7 @@ const ChatbotPage = () => {
       {
         id: '1',
         role: 'assistant',
-        content: 'Welcome to SkillEdge-AI Assistant! I\'m here to help you with:\n\n🤖 **General Questions**: Ask me anything about SkillEdge-AI platform, features, and how to use them.\n\n📊 **Report Analysis**: Get personalized insights about your interview performance based on your reports.\n\nSelect a mode above and let\'s get started!',
+        content: 'Welcome to SkillEdge-AI Assistant! I\'m here to help you with:\n\n🤖 **General Questions**: Ask me anything about SkillEdge-AI platform, features, and how to use them.\n\n📊 **Report Analysis**: Get personalized insights about your interview performance based on your reports.\n\n📄 **Resume Q&A**: Ask questions about your resume and get career guidance based on your background.\n\nSelect a mode above and let\'s get started!',
         timestamp: new Date(),
         sources: ['SkillEdge-AI Knowledge Base']
       }
@@ -172,11 +236,16 @@ const ChatbotPage = () => {
     });
   };
 
-  const suggestedQuestions = includeReports ? [
+  const suggestedQuestions = chatMode === 'reports' ? [
     "Why does my report say I speak too fast?",
     "How can I improve my body language?",
     "What do my low confidence scores mean?",
     "Help me understand my verbal analysis"
+  ] : chatMode === 'resume' ? [
+    "What are my technical skills?",
+    "Summarize my work experience",
+    "What programming languages do I know?",
+    "Based on my background, what roles am I suited for?"
   ] : [
     "What is SkillEdge-AI?",
     "How do I start my first interview?",
@@ -254,21 +323,62 @@ const ChatbotPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button
-                    variant={!includeReports ? "default" : "outline"}
-                    onClick={() => setIncludeReports(false)}
+                    variant={chatMode === 'general' ? "default" : "outline"}
+                    onClick={() => setChatMode('general')}
                     className="w-full justify-start"
                   >
                     <Brain className="w-4 h-4 mr-2" />
                     General Q&A
                   </Button>
                   <Button
-                    variant={includeReports ? "default" : "outline"}
-                    onClick={() => setIncludeReports(true)}
+                    variant={chatMode === 'reports' ? "default" : "outline"}
+                    onClick={() => setChatMode('reports')}
                     className="w-full justify-start"
                   >
                     <BarChart3 className="w-4 h-4 mr-2" />
                     Report Analysis
                   </Button>
+                  <Button
+                    variant={chatMode === 'resume' ? "default" : "outline"}
+                    onClick={() => setChatMode('resume')}
+                    className="w-full justify-start"
+                    disabled={!resumeAvailable || isIndexing}
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Resume Q&A
+                    {isIndexing && <span className="ml-2 text-xs">(Indexing...)</span>}
+                  </Button>
+                  {resumeStatus?.has_resume_file && !resumeStatus?.has_resume_index && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={reindexResume}
+                      disabled={isIndexing}
+                      className="w-full mt-2 text-xs"
+                    >
+                      {isIndexing ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 mr-2 animate-spin" />
+                          Indexing Resume...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3 h-3 mr-2" />
+                          Index Resume
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  {!resumeStatus?.has_resume_file && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      Upload a resume in your profile to use this feature
+                    </p>
+                  )}
+                  {resumeStatus?.has_resume_file && isIndexing && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                      ⚡ Indexing your resume for chatbot use...
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -300,8 +410,8 @@ const ChatbotPage = () => {
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <Badge variant={includeReports ? "default" : "secondary"}>
-                        {includeReports ? "Report Analysis Mode" : "General Q&A Mode"}
+                      <Badge variant={chatMode === 'general' ? "secondary" : "default"}>
+                        {chatMode === 'reports' ? "Report Analysis Mode" : chatMode === 'resume' ? "Resume Q&A Mode" : "General Q&A Mode"}
                       </Badge>
                       {conversationId && (
                         <Badge variant="outline" className="text-xs">
@@ -401,9 +511,11 @@ const ChatbotPage = () => {
                       onChange={(e) => setInput(e.target.value)}
                       onKeyPress={handleKeyPress}
                       placeholder={
-                        includeReports 
+                        chatMode === 'reports'
                           ? "Ask about your interview reports..." 
-                          : "Ask about SkillEdge-AI..."
+                          : chatMode === 'resume'
+                            ? "Ask about your resume..."
+                            : "Ask about SkillEdge-AI..."
                       }
                       disabled={isLoading}
                       className="flex-1"

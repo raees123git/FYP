@@ -152,6 +152,9 @@ async def chat_with_bot(
             for msg in conversation.messages[-10:]  # Last 10 messages
         ]
         
+        # Determine sources for response
+        sources = ["SkillEdge-AI Knowledge Base"]
+        
         # Generate chatbot response
         if request.include_reports:
             if user_reports:
@@ -159,19 +162,31 @@ async def chat_with_bot(
                 logger.info(f"Using report analysis mode for user {user_id} with {len(user_reports)} reports")
                 bot_response = await chatbot.analyze_user_reports(
                     query=request.message,
-                    user_reports=user_reports
+                    user_reports=user_reports,
+                    user_id=user_id,
+                    include_resume=request.include_resume
                 )
+                sources.append("User Reports")
             else:
                 # User requested report analysis but has no reports
                 logger.info(f"User {user_id} requested report analysis but has no reports")
                 bot_response = "I don't see any interview reports for your account yet. Please complete an interview first to get personalized insights about your performance. In the meantime, I can help you with general questions about SkillEdge-AI!"
         else:
             # Use general RAG function
-            logger.info(f"Using general Q&A mode for user {user_id}")
+            logger.info(f"Using general Q&A mode for user {user_id}, include_resume={request.include_resume}")
             bot_response = await chatbot.generate_response(
                 query=request.message,
-                conversation_history=conversation_history[:-1]  # Exclude current message
+                conversation_history=conversation_history[:-1],  # Exclude current message
+                user_id=user_id,
+                include_resume=request.include_resume
             )
+        
+        # Add resume to sources if included
+        if request.include_resume:
+            from app.chatbot.resume_rag import get_resume_rag_service
+            resume_rag = get_resume_rag_service()
+            if resume_rag.has_resume_index(user_id):
+                sources.append("Your Resume")
         
         # Add bot response to conversation
         bot_message = ChatMessage(role="assistant", content=bot_response)
@@ -183,7 +198,7 @@ async def chat_with_bot(
         return ChatResponse(
             message=bot_response,
             conversation_id=conversation_id,
-            sources=["SkillEdge-AI Knowledge Base"] if not request.include_reports else ["SkillEdge-AI Knowledge Base", "User Reports"]
+            sources=sources
         )
         
     except Exception as e:
@@ -301,6 +316,64 @@ async def add_knowledge_entry(
     except Exception as e:
         logger.error(f"Error adding knowledge entry: {e}")
         raise HTTPException(status_code=500, detail="An error occurred while adding knowledge entry")
+
+@router.get("/resume/status")
+async def get_resume_status(user_id: str = Depends(get_current_user)):
+    """Check if user's resume is indexed for chatbot"""
+    try:
+        from app.chatbot.resume_rag import get_resume_rag_service
+        resume_rag = get_resume_rag_service()
+        
+        has_index = resume_rag.has_resume_index(user_id)
+        
+        # Get profile to check if resume file exists
+        profiles_collection = get_profiles_collection()
+        profile = await profiles_collection.find_one({"user_id": user_id})
+        
+        has_resume_file = bool(profile and profile.get("resume_file_id"))
+        
+        return {
+            "has_resume_file": has_resume_file,
+            "has_resume_index": has_index,
+            "resume_filename": profile.get("resume_filename") if profile else None,
+            "indexed": has_index,
+            "can_use_resume_chat": has_index
+        }
+    except Exception as e:
+        logger.error(f"Error checking resume status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/resume/reindex")
+async def reindex_resume(user_id: str = Depends(get_current_user)):
+    """Manually reindex user's resume for chatbot"""
+    try:
+        # Get profile to find resume file ID
+        profiles_collection = get_profiles_collection()
+        profile = await profiles_collection.find_one({"user_id": user_id})
+        
+        if not profile or not profile.get("resume_file_id"):
+            raise HTTPException(status_code=404, detail="No resume found for this user")
+        
+        # Index the resume
+        from app.chatbot.resume_rag import get_resume_rag_service
+        resume_rag = get_resume_rag_service()
+        
+        result = await resume_rag.index_user_resume(user_id, profile["resume_file_id"])
+        
+        if result.get("success"):
+            return {
+                "success": True,
+                "message": "Resume indexed successfully",
+                "chunks": result.get("chunks", 0)
+            }
+        else:
+            raise HTTPException(status_code=500, detail=result.get("error", "Indexing failed"))
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error reindexing resume: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/search")
 async def search_knowledge_base(
