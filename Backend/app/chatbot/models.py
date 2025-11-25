@@ -14,11 +14,9 @@ class ChatMessage(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 class ChatRequest(BaseModel):
-    """Chat request model"""
+    """Chat request model - Agentic routing automatically determines which data to use"""
     message: str = Field(..., description="User's message to the chatbot", min_length=1)
     conversation_id: Optional[str] = Field(None, description="Conversation ID for maintaining context")
-    include_reports: bool = Field(default=False, description="Whether to include user's reports in analysis")
-    include_resume: bool = Field(default=False, description="Whether to include user's resume in context")
 
 class ChatResponse(BaseModel):
     """Chat response model"""

@@ -17,7 +17,7 @@ const ChatbotWidget = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hi! I\'m your SkillEdge-AI assistant. I can help you with questions about our platform or analyze your interview reports. How can I assist you today?',
+      content: 'Hi! I\'m your SkillEdge-AI assistant powered by intelligent agent routing. I can automatically help you with questions about our platform, analyze your interview reports, or answer questions about your resume. Just ask me anything!',
       timestamp: new Date(),
       sources: ['SkillEdge-AI Knowledge Base']
     }
@@ -25,7 +25,6 @@ const ChatbotWidget = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
-  const [chatMode, setChatMode] = useState('general'); // 'general', 'reports', or 'resume'
   const [resumeAvailable, setResumeAvailable] = useState(false);
   const [isIndexing, setIsIndexing] = useState(false);
   const [resumeStatus, setResumeStatus] = useState(null);
@@ -131,8 +130,7 @@ const ChatbotWidget = () => {
         body: JSON.stringify({
           message: userMessage.content,
           conversation_id: conversationId,
-          include_reports: chatMode === 'reports',
-          include_resume: chatMode === 'resume'
+          // Agentic routing - supervisor automatically determines which agent to use
         }),
       });
 
@@ -183,13 +181,12 @@ const ChatbotWidget = () => {
       {
         id: '1',
         role: 'assistant',
-        content: 'Hi! I\'m your SkillEdge-AI assistant. I can help you with questions about our platform, analyze your interview reports, or answer questions about your resume. How can I assist you today?',
+        content: 'Hi! I\'m your SkillEdge-AI assistant powered by intelligent agent routing. I can automatically help you with questions about our platform, analyze your interview reports, or answer questions about your resume. Just ask me anything!',
         timestamp: new Date(),
         sources: ['SkillEdge-AI Knowledge Base']
       }
     ]);
     setConversationId(null);
-    setChatMode('general');
   };
 
   const formatTime = (timestamp) => {
@@ -267,48 +264,21 @@ const ChatbotWidget = () => {
 
             {!isMinimized && (
               <>
-                {/* Mode Toggle */}
+                {/* Agentic Badge */}
                 <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex items-center space-x-1">
-                      <Button
-                        variant={chatMode === 'general' ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setChatMode('general')}
-                        className="flex items-center space-x-1 text-xs flex-1"
-                      >
-                        <Brain className="h-3 w-3" />
-                        <span>General</span>
-                      </Button>
-                      <Button
-                        variant={chatMode === 'reports' ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setChatMode('reports')}
-                        className="flex items-center space-x-1 text-xs flex-1"
-                      >
-                        <BarChart3 className="h-3 w-3" />
-                        <span>Reports</span>
-                      </Button>
-                      <Button
-                        variant={chatMode === 'resume' ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setChatMode('resume')}
-                        className="flex items-center space-x-1 text-xs flex-1"
-                        disabled={!resumeAvailable}
-                        title={!resumeAvailable ? "Upload a resume in your profile" : "Ask about your resume"}
-                      >
-                        <User className="h-3 w-3" />
-                        <span>Resume</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearConversation}
-                        className="h-7 w-7 p-0"
-                      >
-                        <RefreshCw className="h-3 w-3" />
-                      </Button>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="default" className="bg-gradient-to-r from-blue-600 to-purple-600 text-xs">
+                      🤖 Intelligent Agent Mode
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearConversation}
+                      className="h-7 w-7 p-0"
+                      title="New conversation"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                    </Button>
                   </div>
                 </div>
 
@@ -397,13 +367,7 @@ const ChatbotWidget = () => {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      placeholder={
-                        chatMode === 'reports'
-                          ? "Ask about your interview reports..." 
-                          : chatMode === 'resume'
-                            ? "Ask about your resume..."
-                            : "Ask about SkillEdge-AI..."
-                      }
+                      placeholder="Ask me anything - I'll route it automatically..."
                       disabled={isLoading || !user}
                       className="flex-1"
                     />

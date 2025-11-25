@@ -45,6 +45,7 @@ from app.routers.auth import get_current_user
 
 # Import chatbot service and models
 from app.chatbot.service import get_chatbot_service, ChatbotService
+from app.chatbot.agentic_service import get_agentic_chatbot_service
 from app.chatbot.models import (
     ChatRequest, 
     ChatResponse, 
@@ -118,15 +119,15 @@ async def chat_with_bot(
     request: ChatRequest,
     user_id: str = Depends(get_current_user)
 ):
-    """Main chat endpoint for interacting with the chatbot"""
+    """Main chat endpoint with automatic agent routing (agentic behavior)"""
     try:
-        # Get chatbot service
-        chatbot = get_chatbot_service()
+        # Get agentic chatbot service (uses LangGraph for automatic routing)
+        agentic_chatbot = get_agentic_chatbot_service()
         
         # Generate or use existing conversation ID
         conversation_id = request.conversation_id or str(uuid.uuid4())
         
-        # Get or create conversation history
+        # Get or create conversation history for tracking
         if conversation_id not in conversations:
             conversations[conversation_id] = ConversationHistory(
                 conversation_id=conversation_id,
@@ -140,53 +141,21 @@ async def chat_with_bot(
         user_message = ChatMessage(role="user", content=request.message)
         conversation.messages.append(user_message)
         
-        # Get user reports if requested
-        user_reports = {}
-        if request.include_reports:
-            user_reports = await get_user_reports(user_id)
-            logger.info(f"Fetched reports for user {user_id}: {len(user_reports)} reports found")
+        logger.info(f"🔄 Processing agentic chat for user {user_id}: {request.message[:50]}...")
         
-        # Prepare conversation history for context
-        conversation_history = [
-            {"role": msg.role, "content": msg.content} 
-            for msg in conversation.messages[-10:]  # Last 10 messages
-        ]
+        # Use agentic chatbot service - it will automatically route to the right agent
+        # No need for include_reports or include_resume flags - supervisor decides!
+        result = await agentic_chatbot.chat(
+            user_query=request.message,
+            user_id=user_id,
+            conversation_id=conversation_id
+        )
         
-        # Determine sources for response
-        sources = ["SkillEdge-AI Knowledge Base"]
+        bot_response = result["response"]
+        sources = result["sources"]
+        route = result["route"]
         
-        # Generate chatbot response
-        if request.include_reports:
-            if user_reports:
-                # Use report analysis function for personalized insights
-                logger.info(f"Using report analysis mode for user {user_id} with {len(user_reports)} reports")
-                bot_response = await chatbot.analyze_user_reports(
-                    query=request.message,
-                    user_reports=user_reports,
-                    user_id=user_id,
-                    include_resume=request.include_resume
-                )
-                sources.append("User Reports")
-            else:
-                # User requested report analysis but has no reports
-                logger.info(f"User {user_id} requested report analysis but has no reports")
-                bot_response = "I don't see any interview reports for your account yet. Please complete an interview first to get personalized insights about your performance. In the meantime, I can help you with general questions about SkillEdge-AI!"
-        else:
-            # Use general RAG function
-            logger.info(f"Using general Q&A mode for user {user_id}, include_resume={request.include_resume}")
-            bot_response = await chatbot.generate_response(
-                query=request.message,
-                conversation_history=conversation_history[:-1],  # Exclude current message
-                user_id=user_id,
-                include_resume=request.include_resume
-            )
-        
-        # Add resume to sources if included
-        if request.include_resume:
-            from app.chatbot.resume_rag import get_resume_rag_service
-            resume_rag = get_resume_rag_service()
-            if resume_rag.has_resume_index(user_id):
-                sources.append("Your Resume")
+        logger.info(f"✅ Agentic chatbot routed to '{route}' agent")
         
         # Add bot response to conversation
         bot_message = ChatMessage(role="assistant", content=bot_response)
@@ -203,6 +172,7 @@ async def chat_with_bot(
         
     except Exception as e:
         logger.error(f"Error in chat endpoint: {e}")
+        logger.exception("Full traceback:")
         raise HTTPException(status_code=500, detail="An error occurred while processing your request")
 
 @router.get("/conversations/{conversation_id}", response_model=ConversationHistory)

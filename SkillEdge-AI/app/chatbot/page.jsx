@@ -17,7 +17,7 @@ const ChatbotPage = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Welcome to SkillEdge-AI Assistant! I\'m here to help you with:\n\n🤖 **General Questions**: Ask me anything about SkillEdge-AI platform, features, and how to use them.\n\n📊 **Report Analysis**: Get personalized insights about your interview performance based on your reports.\n\nSelect a mode above and let\'s get started!',
+      content: 'Welcome to SkillEdge-AI Assistant! 👋\n\nI\'m your intelligent AI assistant powered by advanced agent routing. I can automatically help you with:\n\n🎯 **Resume Questions**: Ask about your skills, experience, education, or projects\n📊 **Performance Analysis**: Get insights about your interview reports, scores, WPM, and feedback\n💡 **Platform Guidance**: Learn about SkillEdge-AI features and how to use them\n\nJust ask me anything - I\'ll automatically understand what you need and route your query to the right specialist!',
       timestamp: new Date(),
       sources: ['SkillEdge-AI Knowledge Base']
     }
@@ -25,7 +25,6 @@ const ChatbotPage = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
-  const [chatMode, setChatMode] = useState('general'); // 'general', 'reports', or 'resume'
   const [conversations, setConversations] = useState([]);
   const [resumeAvailable, setResumeAvailable] = useState(false);
   const [isIndexing, setIsIndexing] = useState(false);
@@ -151,8 +150,7 @@ const ChatbotPage = () => {
         body: JSON.stringify({
           message: userMessage.content,
           conversation_id: conversationId,
-          include_reports: chatMode === 'reports',
-          include_resume: chatMode === 'resume'
+          // No need for include_reports or include_resume - agentic routing handles it automatically!
         }),
       });
 
@@ -203,7 +201,7 @@ const ChatbotPage = () => {
       {
         id: '1',
         role: 'assistant',
-        content: 'Welcome to SkillEdge-AI Assistant! I\'m here to help you with:\n\n🤖 **General Questions**: Ask me anything about SkillEdge-AI platform, features, and how to use them.\n\n📊 **Report Analysis**: Get personalized insights about your interview performance based on your reports.\n\n📄 **Resume Q&A**: Ask questions about your resume and get career guidance based on your background.\n\nSelect a mode above and let\'s get started!',
+        content: 'Welcome to SkillEdge-AI Assistant! 👋\n\nI\'m your intelligent AI assistant powered by advanced agent routing. I can automatically help you with:\n\n🎯 **Resume Questions**: Ask about your skills, experience, education, or projects\n📊 **Performance Analysis**: Get insights about your interview reports, scores, WPM, and feedback\n💡 **Platform Guidance**: Learn about SkillEdge-AI features and how to use them\n\nJust ask me anything - I\'ll automatically understand what you need and route your query to the right specialist!',
         timestamp: new Date(),
         sources: ['SkillEdge-AI Knowledge Base']
       }
@@ -236,21 +234,13 @@ const ChatbotPage = () => {
     });
   };
 
-  const suggestedQuestions = chatMode === 'reports' ? [
-    "Why does my report say I speak too fast?",
-    "How can I improve my body language?",
-    "What do my low confidence scores mean?",
-    "Help me understand my verbal analysis"
-  ] : chatMode === 'resume' ? [
-    "What are my technical skills?",
-    "Summarize my work experience",
+  const suggestedQuestions = [
+    "What is my WPM?",
     "What programming languages do I know?",
-    "Based on my background, what roles am I suited for?"
-  ] : [
-    "What is SkillEdge-AI?",
-    "How do I start my first interview?",
+    "How can I improve my interview performance?",
+    "Summarize my work experience",
     "What types of reports do you generate?",
-    "How can SkillEdge-AI help me improve?"
+    "What are my weak areas in interviews?"
   ];
 
   if (authLoading) {
@@ -319,42 +309,46 @@ const ChatbotPage = () => {
             <div className="lg:col-span-1">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm">Chat Mode</CardTitle>
+                  <CardTitle className="text-sm">🤖 Intelligent Assistant</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button
-                    variant={chatMode === 'general' ? "default" : "outline"}
-                    onClick={() => setChatMode('general')}
-                    className="w-full justify-start"
-                  >
-                    <Brain className="w-4 h-4 mr-2" />
-                    General Q&A
-                  </Button>
-                  <Button
-                    variant={chatMode === 'reports' ? "default" : "outline"}
-                    onClick={() => setChatMode('reports')}
-                    className="w-full justify-start"
-                  >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Report Analysis
-                  </Button>
-                  <Button
-                    variant={chatMode === 'resume' ? "default" : "outline"}
-                    onClick={() => setChatMode('resume')}
-                    className="w-full justify-start"
-                    disabled={!resumeAvailable || isIndexing}
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Resume Q&A
-                    {isIndexing && <span className="ml-2 text-xs">(Indexing...)</span>}
-                  </Button>
+                  <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <p className="font-semibold text-gray-900 dark:text-white">Automatic Routing</p>
+                    <p className="text-xs">
+                      I automatically understand your questions and route them to the right specialist:
+                    </p>
+                    <div className="space-y-2 mt-3">
+                      <div className="flex items-start space-x-2">
+                        <User className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-900 dark:text-white">Resume Agent</p>
+                          <p className="text-xs">Skills, experience, education</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <BarChart3 className="w-4 h-4 mt-0.5 flex-shrink-0 text-purple-600" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-900 dark:text-white">Reports Agent</p>
+                          <p className="text-xs">Performance, scores, feedback</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Brain className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-900 dark:text-white">General Agent</p>
+                          <p className="text-xs">Platform info, guidance</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
                   {resumeStatus?.has_resume_file && !resumeStatus?.has_resume_index && (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={reindexResume}
                       disabled={isIndexing}
-                      className="w-full mt-2 text-xs"
+                      className="w-full mt-4 text-xs"
                     >
                       {isIndexing ? (
                         <>
@@ -370,14 +364,18 @@ const ChatbotPage = () => {
                     </Button>
                   )}
                   {!resumeStatus?.has_resume_file && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      Upload a resume in your profile to use this feature
-                    </p>
+                    <div className="mt-4 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                      <p className="text-xs text-yellow-800 dark:text-yellow-300">
+                        💡 Upload a resume in your profile to unlock resume-based questions!
+                      </p>
+                    </div>
                   )}
-                  {resumeStatus?.has_resume_file && isIndexing && (
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                      ⚡ Indexing your resume for chatbot use...
-                    </p>
+                  {resumeStatus?.has_resume_file && resumeStatus?.has_resume_index && (
+                    <div className="mt-4 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <p className="text-xs text-green-800 dark:text-green-300">
+                        ✅ Resume indexed and ready!
+                      </p>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -385,7 +383,7 @@ const ChatbotPage = () => {
               {/* Suggested Questions */}
               <Card className="mt-4">
                 <CardHeader>
-                  <CardTitle className="text-sm">Suggested Questions</CardTitle>
+                  <CardTitle className="text-sm">💡 Try Asking</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {suggestedQuestions.map((question, index) => (
@@ -410,8 +408,8 @@ const ChatbotPage = () => {
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <Badge variant={chatMode === 'general' ? "secondary" : "default"}>
-                        {chatMode === 'reports' ? "Report Analysis Mode" : chatMode === 'resume' ? "Resume Q&A Mode" : "General Q&A Mode"}
+                      <Badge variant="default" className="bg-gradient-to-r from-blue-600 to-purple-600">
+                        🤖 Intelligent Agent Mode
                       </Badge>
                       {conversationId && (
                         <Badge variant="outline" className="text-xs">
@@ -510,13 +508,7 @@ const ChatbotPage = () => {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      placeholder={
-                        chatMode === 'reports'
-                          ? "Ask about your interview reports..." 
-                          : chatMode === 'resume'
-                            ? "Ask about your resume..."
-                            : "Ask about SkillEdge-AI..."
-                      }
+                      placeholder="Ask me anything - I'll route it to the right specialist..."
                       disabled={isLoading}
                       className="flex-1"
                     />
