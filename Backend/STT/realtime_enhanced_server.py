@@ -189,7 +189,7 @@ def transcribe_stream():
                 if not text:
                     continue
 
-                blacklist = ["thanks for watching!", "thank you for watching!", "subscribe", "bye.","I love you","Thank you very much."]
+                blacklist = ["It is beautiful.","thanks for watching!", "thank you for watching!", "subscribe", "bye.","I love you","Thank you very much.","Confidence"]
                 if text.lower() in blacklist:
                     continue
 

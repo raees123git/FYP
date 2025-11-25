@@ -36,15 +36,20 @@ async def get_profile(user_id: str = Depends(get_current_user)):
     try:
         profiles_collection = get_profiles_collection()
         
-        # Find profile by user_id
+        print(f"🔍 GET PROFILE - Fetching profile for user_id: {user_id}")
+        
+        # Find profile by user_id - CRITICAL: Must match exactly
         profile = await profiles_collection.find_one({"user_id": user_id})
         
         if not profile:
+            print(f"❌ GET PROFILE - No profile found for user_id: {user_id}")
             return {
                 "success": False,
                 "message": "Profile not found",
                 "profile": None
             }
+        
+        print(f"✅ GET PROFILE - Profile found for user_id: {user_id}")
         
         # Convert ObjectId to string for JSON serialization
         profile["_id"] = str(profile["_id"])
@@ -61,7 +66,7 @@ async def get_profile(user_id: str = Depends(get_current_user)):
         }
         
     except Exception as e:
-        print(f"Error fetching profile: {str(e)}")
+        print(f"❌ GET PROFILE ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/", response_model=ProfileResponse)

@@ -209,6 +209,8 @@ async def get_user_interviews(user_id: str = Depends(get_current_user)):
     try:
         interview_reports_collection = get_interview_reports_collection()
         
+        print(f"🔍 GET USER INTERVIEWS - Fetching interviews for user_id: {user_id}")
+        
         # Fetch all interviews for the user, sorted by creation date (newest first)
         interviews_cursor = interview_reports_collection.find(
             {"user_id": user_id},
@@ -225,6 +227,8 @@ async def get_user_interviews(user_id: str = Depends(get_current_user)):
         
         interviews = await interviews_cursor.to_list(length=None)
         
+        print(f"✅ GET USER INTERVIEWS - Found {len(interviews)} interviews for user_id: {user_id}")
+        
         # Convert ObjectId to string for JSON serialization
         for interview in interviews:
             interview["_id"] = str(interview["_id"])
@@ -236,7 +240,7 @@ async def get_user_interviews(user_id: str = Depends(get_current_user)):
         }
         
     except Exception as e:
-        print(f"❌ Error fetching user interviews: {str(e)}")
+        print(f"❌ GET USER INTERVIEWS ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

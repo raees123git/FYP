@@ -49,13 +49,34 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     """Validate JWT token and return user_id"""
     try:
         token = credentials.credentials
+        
+        # Decode JWT token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
+        
         if user_id is None:
+            print(f"❌ JWT VALIDATION - No user_id in token")
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        
+        print(f"🔐 JWT VALIDATION - Authenticated user_id: {user_id}")
+        
+        # Verify user exists in database
+        users_collection = get_users_collection()
+        user = await users_collection.find_one({"_id": ObjectId(user_id)})
+        
+        if not user:
+            print(f"❌ JWT VALIDATION - User not found in database: {user_id}")
+            raise HTTPException(status_code=401, detail="User not found")
+        
+        print(f"✅ JWT VALIDATION - User verified and exists: {user_id}")
         return user_id
-    except JWTError:
+        
+    except JWTError as e:
+        print(f"❌ JWT VALIDATION - Token decode error: {str(e)}")
         raise HTTPException(status_code=401, detail="Could not validate credentials")
+    except Exception as e:
+        print(f"❌ JWT VALIDATION - Unexpected error: {str(e)}")
+        raise HTTPException(status_code=401, detail="Authentication failed")
 
 @router.post("/signup", response_model=TokenResponse)
 async def signup(user_data: UserSignup):

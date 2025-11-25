@@ -138,7 +138,19 @@ const Header = () => {
                       Settings
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                  <DropdownMenuItem 
+                    onClick={async () => {
+                      try {
+                        // Call server-side logout first to clear HTTP-only cookies
+                        await fetch('/api/auth/logout', { method: 'POST' });
+                      } catch (error) {
+                        console.error('Server logout error:', error);
+                      }
+                      // Then call client-side logout to clear localStorage
+                      logout();
+                    }}
+                    className="cursor-pointer"
+                  >
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
