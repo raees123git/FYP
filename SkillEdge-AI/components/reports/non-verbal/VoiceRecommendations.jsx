@@ -24,25 +24,25 @@ export default function VoiceRecommendations({ audioMetrics }) {
             Your Strengths
           </h3>
           <div className="space-y-3">
-            {audioMetrics.confidence.average > 0.6 && (
+            {audioMetrics.confidence?.average > 0.6 && (
               <div className="flex items-start bg-green-900/20 p-3 rounded-lg border border-green-600/30">
                 <Target className="w-4 h-4 text-green-400 mt-0.5 mr-2 flex-shrink-0" />
                 <p className="text-sm text-gray-300">Strong confidence level ({Math.round(audioMetrics.confidence.average * 100)}%) - Your voice projects assurance</p>
               </div>
             )}
-            {audioMetrics.tone.averageExpressiveness > 0.6 && (
+            {audioMetrics.tone?.averageExpressiveness > 0.6 && (
               <div className="flex items-start bg-green-900/20 p-3 rounded-lg border border-green-600/30">
                 <Target className="w-4 h-4 text-green-400 mt-0.5 mr-2 flex-shrink-0" />
                 <p className="text-sm text-gray-300">Excellent expressiveness - Your speech is engaging and dynamic</p>
               </div>
             )}
-            {audioMetrics.voiceQuality.averageScore > 0.7 && (
+            {audioMetrics.voiceQuality?.averageScore > 0.7 && (
               <div className="flex items-start bg-green-900/20 p-3 rounded-lg border border-green-600/30">
                 <Target className="w-4 h-4 text-green-400 mt-0.5 mr-2 flex-shrink-0" />
                 <p className="text-sm text-gray-300">High voice quality score - Clear and professional delivery</p>
               </div>
             )}
-            {audioMetrics.energy.volumeConsistency > 0.7 && (
+            {audioMetrics.energy?.volumeConsistency > 0.7 && (
               <div className="flex items-start bg-green-900/20 p-3 rounded-lg border border-green-600/30">
                 <Target className="w-4 h-4 text-green-400 mt-0.5 mr-2 flex-shrink-0" />
                 <p className="text-sm text-gray-300">Consistent volume control - Steady and controlled delivery</p>
@@ -58,43 +58,43 @@ export default function VoiceRecommendations({ audioMetrics }) {
             Areas for Improvement
           </h3>
           <div className="space-y-3">
-            {audioMetrics.pitch.predominantLevel === 'low' && (
+            {audioMetrics.pitch?.predominantLevel === 'low' && (
               <div className="flex items-start bg-yellow-900/20 p-3 rounded-lg border border-yellow-600/30">
                 <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
                 <p className="text-sm text-gray-300">Consider varying your pitch more to add dynamism to your speech</p>
               </div>
             )}
-            {audioMetrics.pitch.predominantLevel === 'high' && (
+            {audioMetrics.pitch?.predominantLevel === 'high' && (
               <div className="flex items-start bg-yellow-900/20 p-3 rounded-lg border border-yellow-600/30">
                 <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
                 <p className="text-sm text-gray-300">Try lowering your pitch occasionally for emphasis and authority</p>
               </div>
             )}
-            {audioMetrics.tone.averageExpressiveness < 0.5 && (
+            {audioMetrics.tone?.averageExpressiveness < 0.5 && (
               <div className="flex items-start bg-yellow-900/20 p-3 rounded-lg border border-yellow-600/30">
                 <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
                 <p className="text-sm text-gray-300">Work on adding more expression and emotion to your voice</p>
               </div>
             )}
-            {audioMetrics.voiceQuality.averageBreathiness > 0.5 && (
+            {audioMetrics.voiceQuality?.averageBreathiness > 0.5 && (
               <div className="flex items-start bg-yellow-900/20 p-3 rounded-lg border border-yellow-600/30">
                 <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
                 <p className="text-sm text-gray-300">Practice breath control to reduce breathiness in your voice</p>
               </div>
             )}
-            {audioMetrics.voiceQuality.averageStrain > 0.5 && (
+            {audioMetrics.voiceQuality?.averageStrain > 0.5 && (
               <div className="flex items-start bg-yellow-900/20 p-3 rounded-lg border border-yellow-600/30">
                 <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
                 <p className="text-sm text-gray-300">Relax your vocal cords to reduce strain and speak more naturally</p>
               </div>
             )}
-            {audioMetrics.confidence.average < 0.5 && (
+            {audioMetrics.confidence?.average < 0.5 && (
               <div className="flex items-start bg-yellow-900/20 p-3 rounded-lg border border-yellow-600/30">
                 <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
                 <p className="text-sm text-gray-300">Focus on projecting more confidence through steadier tone and volume</p>
               </div>
             )}
-            {audioMetrics.energy.volumeConsistency < 0.5 && (
+            {audioMetrics.energy?.volumeConsistency < 0.5 && (
               <div className="flex items-start bg-yellow-900/20 p-3 rounded-lg border border-yellow-600/30">
                 <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
                 <p className="text-sm text-gray-300">Work on maintaining consistent volume throughout your responses</p>
@@ -113,20 +113,64 @@ export default function VoiceRecommendations({ audioMetrics }) {
         <ul className="space-y-2 text-sm text-gray-300">
           <li className="flex items-start">
             <span className="text-blue-400 mr-2">•</span>
-            Practice speaking at {audioMetrics.pitch.average < 150 ? 'a slightly higher' : audioMetrics.pitch.average > 200 ? 'a slightly lower' : 'your current'} pitch to maintain engagement
+            Practice speaking at {audioMetrics.pitch?.average ? (audioMetrics.pitch.average < 150 ? 'a slightly higher' : audioMetrics.pitch.average > 200 ? 'a slightly lower' : 'your current') : 'a comfortable'} pitch to maintain engagement
           </li>
           <li className="flex items-start">
             <span className="text-blue-400 mr-2">•</span>
-            Your emotional variety score is {audioMetrics.tone.emotionalVariety}. {audioMetrics.tone.emotionalVariety < 3 ? 'Try to vary your emotional tone more' : 'Good variation in emotional expression'}
+            Your emotional variety score is {audioMetrics.tone?.emotionalVariety || 0}. {audioMetrics.tone?.emotionalVariety < 3 ? 'Try to vary your emotional tone more' : 'Good variation in emotional expression'}
           </li>
           <li className="flex items-start">
             <span className="text-blue-400 mr-2">•</span>
-            {audioMetrics.confidence.trend === 'improving' ? 'Great job! Your confidence improved during the interview' : 
-             audioMetrics.confidence.trend === 'declining' ? 'Try to maintain your initial confidence throughout' : 
+            {audioMetrics.confidence?.trend === 'improving' ? 'Great job! Your confidence improved during the interview' : 
+             audioMetrics.confidence?.trend === 'declining' ? 'Try to maintain your initial confidence throughout' : 
              'Your confidence remained steady - good consistency'}
           </li>
         </ul>
       </div>
     </motion.div>
+  );
+}
+
+export function NarrativeRecommendations({ analytics }) {
+  if (!analytics) return null;
+
+  return (
+    <>
+      {/* Narrative Key Recommendations */}
+      {analytics.narrative_recommendations && (
+        <motion.div
+          className="mb-6 bg-gradient-to-r from-purple-900/30 to-indigo-900/30 rounded-xl p-6 border border-purple-600/30"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <h3 className="text-lg font-semibold mb-3 text-purple-300 flex items-center">
+            <Target className="w-5 h-5 mr-2" />
+            Key Recommendations
+          </h3>
+          <p className="text-sm text-gray-300 leading-relaxed">
+            {analytics.narrative_recommendations}
+          </p>
+        </motion.div>
+      )}
+
+      {/* Ideal Response Commentary */}
+      {analytics.ideal_response_commentary && (
+        <motion.div
+          className="mb-6 bg-gradient-to-r from-cyan-900/30 to-blue-900/30 rounded-xl p-6 border border-cyan-600/30"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <h3 className="text-lg font-semibold mb-3 text-cyan-300 flex items-center">
+            <Award className="w-5 h-5 mr-2" />
+            Ideal Interview Response
+          </h3>
+          <p className="text-sm text-gray-300 leading-relaxed">
+            {analytics.ideal_response_commentary}
+          </p>
+        </motion.div>
+      )}
+    </>
   );
 }

@@ -42,7 +42,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
           </h3>
           
           {/* Pitch Analysis */}
-          <div className="bg-card/50 rounded-lg p-4 border border-border">
+          <div className="bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-lg p-4 border border-indigo-500/20">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-muted-foreground">Pitch Control</span>
               <span className={`text-sm font-semibold ${
@@ -54,15 +54,15 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="text-center p-2 bg-secondary rounded">
+              <div className="text-center p-2 bg-gradient-to-br from-gray-700/40 to-gray-800/40 rounded border border-gray-600/30">
                 <p className="text-muted-foreground mb-1">Average</p>
                 <p className="font-bold text-foreground">{audioMetrics.pitch.average} Hz</p>
               </div>
-              <div className="text-center p-2 bg-secondary rounded">
+              <div className="text-center p-2 bg-gradient-to-br from-gray-700/40 to-gray-800/40 rounded border border-gray-600/30">
                 <p className="text-muted-foreground mb-1">Range</p>
                 <p className="font-bold text-foreground">{audioMetrics.pitch.range} Hz</p>
               </div>
-              <div className="text-center p-2 bg-secondary rounded">
+              <div className="text-center p-2 bg-gradient-to-br from-gray-700/40 to-gray-800/40 rounded border border-gray-600/30">
                 <p className="text-muted-foreground mb-1">Trend</p>
                 <p className={`font-bold capitalize ${
                   audioMetrics.pitch.predominantTrend === 'rising' ? 'text-green-400' :
@@ -76,7 +76,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
           </div>
 
           {/* Tone Quality */}
-          <div className="bg-card/50 rounded-lg p-4 border border-border">
+          <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-lg p-4 border border-purple-500/20">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-muted-foreground">Tone Quality</span>
               <div className="relative group">
@@ -94,7 +94,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
               <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">Expressiveness</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-20 h-1.5 bg-secondary rounded-full overflow-hidden">
+                  <div className="w-20 h-1.5 bg-gradient-to-r from-gray-700/40 to-gray-800/40 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-primary to-accent"
                       style={{ width: `${audioMetrics.tone.averageExpressiveness * 100}%` }}
@@ -108,7 +108,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
               <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">Warmth</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-20 h-1.5 bg-secondary rounded-full overflow-hidden">
+                  <div className="w-20 h-1.5 bg-gradient-to-r from-gray-700/40 to-gray-800/40 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-orange-400 to-red-400"
                       style={{ width: `${audioMetrics.tone.averageWarmth * 100}%` }}
@@ -122,7 +122,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
               <div className="flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">Clarity</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-20 h-1.5 bg-secondary rounded-full overflow-hidden">
+                  <div className="w-20 h-1.5 bg-gradient-to-r from-gray-700/40 to-gray-800/40 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-blue-400 to-cyan-400"
                       style={{ width: `${audioMetrics.tone.averageClarity * 100}%` }}
@@ -137,7 +137,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
           </div>
 
           {/* Energy & Volume */}
-          <div className="bg-card/50 rounded-lg p-4 border border-border">
+          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-4 border border-blue-500/20">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-muted-foreground flex items-center">
                 <Zap className="w-4 h-4 mr-1 text-yellow-400" />
@@ -176,7 +176,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
           </h3>
 
           {/* Voice Quality Score */}
-          <div className="bg-card/50 rounded-lg p-4 border border-border">
+          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-4 border border-green-500/20">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-muted-foreground">Voice Quality Score</span>
               <span className={`text-2xl font-bold ${getScoreColor(audioMetrics.voiceQuality.averageScore * 100)}`}>
@@ -218,7 +218,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
           </div>
 
           {/* Speech Speed Progression */}
-          <div className="bg-card/50 rounded-lg p-4 border border-border">
+          <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-lg p-4 border border-indigo-500/20">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-muted-foreground">Speech Speed Progression</span>
               <div className="relative group">
@@ -233,7 +233,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
                   {analytics.wordsPerMinute - 15} WPM
                 </p>
               </div>
-              <div className="flex-1 h-2 bg-secondary rounded-full relative overflow-hidden">
+              <div className="flex-1 h-2 bg-gradient-to-r from-gray-700/40 to-gray-800/40 rounded-full relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-green-400" />
               </div>
               <div className="text-center">
@@ -247,7 +247,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
 
           {/* Confidence Progression */}
           {audioMetrics.confidence && (
-            <div className="bg-card/50 rounded-lg p-4 border border-border">
+            <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-lg p-4 border border-purple-500/20">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-muted-foreground">Confidence Progression</h3>
                 <div className="relative group">
@@ -271,7 +271,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
                      '→ Stable'}
                   </span>
                 </div>
-                <div className="h-8 bg-secondary rounded-lg overflow-hidden relative">
+                <div className="h-8 bg-gradient-to-r from-gray-700/40 to-gray-800/40 rounded-lg overflow-hidden relative">
                   <div 
                     className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg transition-all duration-500"
                     style={{ width: `${audioMetrics.confidence.average * 100}%` }}
@@ -287,7 +287,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
 
           {/* Performance Summary */}
           <div className="grid grid-cols-3 gap-4 mt-4">
-            <div className="bg-card/50 rounded-lg p-3 text-center relative group">
+            <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-lg p-3 text-center border border-cyan-500/20 relative group">
               <div className="absolute top-2 right-2">
                 <Info className="w-3 h-3 text-muted-foreground group-hover:text-foreground cursor-help transition-colors" />
                 <InfoTooltip 
@@ -300,7 +300,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
                 {Math.floor(analytics.totalTime / 60)}m {analytics.totalTime % 60}s
               </p>
             </div>
-            <div className="bg-card/50 rounded-lg p-3 text-center relative group">
+            <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-lg p-3 text-center border border-purple-500/20 relative group">
               <div className="absolute top-2 right-2">
                 <Info className="w-3 h-3 text-muted-foreground group-hover:text-foreground cursor-help transition-colors" />
                 <InfoTooltip 
@@ -313,7 +313,7 @@ export default function AudioAnalysisCard({ audioMetrics, analytics }) {
                 {Math.round(analytics.totalWords / analytics.questionCount)} words
               </p>
             </div>
-            <div className="bg-card/50 rounded-lg p-3 text-center relative group">
+            <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg p-3 text-center border border-green-500/20 relative group">
               <div className="absolute top-2 right-2">
                 <Info className="w-3 h-3 text-muted-foreground group-hover:text-foreground cursor-help transition-colors" />
                 <InfoTooltip 

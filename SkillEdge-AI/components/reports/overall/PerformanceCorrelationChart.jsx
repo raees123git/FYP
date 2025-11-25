@@ -35,7 +35,7 @@ const PerformanceCorrelationChart = ({ data, verbalData, nonVerbalData }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-card p-3 rounded-lg border border-border shadow-lg">
+        <div className="bg-gradient-to-br from-gray-800/90 to-indigo-900/90 p-3 rounded-lg border border-indigo-500/30 shadow-lg">
           <p className="font-semibold text-sm">{data.metric}</p>
           <p className="text-xs text-muted-foreground mt-1">{data.description}</p>
           <p className="text-sm mt-2">
@@ -96,7 +96,7 @@ const PerformanceCorrelationChart = ({ data, verbalData, nonVerbalData }) => {
         </div>
       </div>
 
-      <div className="bg-card p-6 rounded-xl border border-border">
+      <div className="bg-gradient-to-br from-gray-800/50 to-indigo-900/50 p-6 rounded-xl border border-indigo-500/20">
         {chartType === "bar" && (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={barChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>

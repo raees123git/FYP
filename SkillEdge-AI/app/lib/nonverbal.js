@@ -397,12 +397,133 @@ export function createComprehensiveNonVerbalReport(analyticsData, audioMetrics) 
     confidence: { average: 0.72, consistency: 0.68, trend: "stable" }
   };
 
+  // Generate speech rate tips based on WPM
+  const speechRateTips = analyticsData.wordsPerMinute < 120 ? [
+    "Practice with a metronome app",
+    "Record yourself and play at 1.25x speed",
+    "Use fewer pauses between words",
+    "Try speaking exercises to increase pace"
+  ] : analyticsData.wordsPerMinute > 160 ? [
+    "Take a breath before answering",
+    "Emphasize key words",
+    "Practice the 'pause and think' method",
+    "Focus on clarity over speed"
+  ] : [
+    "Excellent pace - maintain this rhythm",
+    "Focus on clarity",
+    "Use strategic pauses",
+    "Continue practicing at this speed"
+  ];
+
+  // Generate pause recommendations based on pattern
+  const pauseRecommendations = 
+    (pausePattern === "Too Many Long Pauses" || pausePattern.includes("Long")) ? [
+      "Reduce gap between sentences",
+      "Keep pause between 0.5s–1s",
+      "Practice speaking with a timer",
+      "Work on maintaining flow"
+    ] : (pausePattern === "Rushed Speech" || pausePattern.includes("Short")) ? [
+      "Add brief pauses after key points",
+      "Breathe between sentences",
+      "Use pauses to emphasize",
+      "Practice structured answers"
+    ] : pausePattern === "Balanced" ? [
+      "Great use of pauses - maintain this rhythm",
+      "Use pauses strategically",
+      "Continue balanced pacing"
+    ] : [
+      "Aim for consistent pattern",
+      "Practice structured answers",
+      "Use the STAR method"
+    ];
+
+  // Generate filler word tips based on percentage
+  const fillerWordTips = analyticsData.fillerPercentage < 3 ? [
+    "Excellent - minimal filler words",
+    "Maintain your articulate speech pattern",
+    "Continue practicing"
+  ] : analyticsData.fillerPercentage < 5 ? [
+    "Practice pause-and-think technique",
+    "Record yourself to identify patterns",
+    "Work on breathing exercises"
+  ] : analyticsData.fillerPercentage < 8 ? [
+    "Focus on eliminating common fillers",
+    "Practice answering questions slowly",
+    "Use the 3-second rule before responding",
+    "Work with a speech coach"
+  ] : [
+    "Major focus area - reduce filler words significantly",
+    "Practice structured responses",
+    "Record and review your practice sessions",
+    "Use pause instead of filler words",
+    "Consider professional speech training"
+  ];
+
+  // Calculate time per word
+  const timePerWord = analyticsData.wordsPerMinute > 0 ? 
+    parseFloat((60 / analyticsData.wordsPerMinute).toFixed(2)) : 0;
+
+  // Generate speaking speed evolution (estimate start and end WPM)
+  const speakingSpeedEvolution = {
+    startWPM: Math.max(80, analyticsData.wordsPerMinute - 15),
+    endWPM: Math.min(200, analyticsData.wordsPerMinute + 15),
+    averageWPM: analyticsData.wordsPerMinute,
+    trend: analyticsData.wordsPerMinute > 140 ? "improving" : "stable",
+    description: analyticsData.wordsPerMinute > 140 ? 
+      "Your speaking speed increased throughout the interview, showing growing confidence" :
+      "You maintained a consistent speaking pace throughout the interview"
+  };
+
+  // Generate confidence progression
+  const confidenceProgression = {
+    overall: enhancedAudioMetrics.confidence.average,
+    trend: enhancedAudioMetrics.confidence.trend,
+    consistency: enhancedAudioMetrics.confidence.consistency,
+    startConfidence: Math.max(0.3, enhancedAudioMetrics.confidence.average - 0.1),
+    endConfidence: Math.min(1.0, enhancedAudioMetrics.confidence.average + 0.1),
+    description: enhancedAudioMetrics.confidence.trend === 'improving' ? 
+      "Your confidence grew stronger as the interview progressed" :
+      enhancedAudioMetrics.confidence.trend === 'declining' ?
+      "Your confidence decreased slightly during the interview" :
+      "You maintained steady confidence throughout the interview"
+  };
+
+  // Generate narrative recommendations
+  const narrativeRecommendations = [
+    overallConfidence < 70 ? "Focus on building overall confidence through regular practice and preparation" : null,
+    analyticsData.fillerPercentage > 5 ? `Prioritize reducing filler words from ${analyticsData.fillerPercentage}% to under 3%` : null,
+    analyticsData.wordsPerMinute < 120 ? "Work on increasing your speaking pace to 120-160 WPM for better engagement" : null,
+    analyticsData.wordsPerMinute > 160 ? "Practice slowing down your speech for better clarity and comprehension" : null,
+    pausePattern !== "Balanced" ? "Develop a more balanced pause pattern for natural conversation flow" : null,
+    enhancedAudioMetrics.confidence.average < 0.6 ? "Build vocal confidence through breathing exercises and posture improvement" : null
+  ].filter(Boolean).join(". ") || "Maintain your strong non-verbal communication skills and continue practicing.";
+
+  // Generate ideal response commentary
+  const idealResponseCommentary = `For optimal interview performance: Speak at ${
+    analyticsData.wordsPerMinute >= 120 && analyticsData.wordsPerMinute <= 160 ? 
+    "your current pace" : "120-160 words per minute"
+  }, maintain filler words under 3%, use balanced pauses (0.5-1 second), and project confident vocal energy. ${
+    overallConfidence >= 80 ? 
+    "You're demonstrating most of these qualities excellently." :
+    "Focus on these areas to enhance your interview presence."
+  }`;
+
   const report = {
     analytics: analyticsData,
     audioMetrics: enhancedAudioMetrics,
     confidenceScores: { voiceModulationScore,speechrate , fluency, overallConfidence },
     insights: { strengths: strengths.slice(0, 10), improvements: improvements.slice(0, 10) },
     feedback: `Speech rate: ${analyticsData.speechRate}. ${analyticsData.speechRateDescription} Filler words usage: ${analyticsData.fillerPercentage}%. Pause pattern: ${pausePattern}. Overall confidence level: ${overallConfidence}%.`,
+    
+    // New enhanced fields for database storage
+    speech_rate_tips: speechRateTips,
+    pause_recommendations: pauseRecommendations,
+    filler_word_tips: fillerWordTips,
+    time_per_word: timePerWord,
+    speaking_speed_evolution: speakingSpeedEvolution,
+    confidence_progression: confidenceProgression,
+    narrative_recommendations: narrativeRecommendations,
+    ideal_response_commentary: idealResponseCommentary,
     pitchProfile: {
       average: enhancedAudioMetrics.pitch.average,
       range: enhancedAudioMetrics.pitch.range,

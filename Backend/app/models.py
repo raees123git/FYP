@@ -166,6 +166,15 @@ class NonVerbalReport(BaseModel):
     user_id: str = Field(..., description="Clerk user ID")
     interview_id: Optional[str] = Field(default=None, description="Reference to interview report")
     analytics: Dict[str, Any] = Field(default_factory=dict)  # Store complete comprehensive non-verbal data
+    # Enhanced fields for detailed recommendations and metrics
+    speech_rate_tips: Optional[List[str]] = Field(default=None, description="Tips for improving speech rate")
+    pause_recommendations: Optional[List[str]] = Field(default=None, description="Recommendations for pause patterns")
+    filler_word_tips: Optional[List[str]] = Field(default=None, description="Tips for reducing filler words")
+    time_per_word: Optional[float] = Field(default=None, description="Average time spent per word in seconds")
+    speaking_speed_evolution: Optional[Dict[str, Any]] = Field(default=None, description="Start and end WPM tracking")
+    confidence_progression: Optional[Dict[str, Any]] = Field(default=None, description="Confidence timeline data")
+    narrative_recommendations: Optional[str] = Field(default=None, description="Narrative summary of key recommendations")
+    ideal_response_commentary: Optional[str] = Field(default=None, description="Best practices for interview responses")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:

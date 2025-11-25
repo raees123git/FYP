@@ -15,6 +15,7 @@ import {
   VoiceAnalysisCards,
   VolumeEnergyConfidence,
   VoiceRecommendations,
+  NarrativeRecommendations,
   SpeechPatternTimeline,
   DetailedAnalysis,
   ActionButtons,
@@ -418,6 +419,9 @@ export default function NonVerbalReport() {
               <SpeechPatternTimeline analytics={analytics} audioMetrics={audioMetrics} />
             </>
           )}
+
+          {/* Narrative Recommendations & Ideal Response Commentary */}
+          <NarrativeRecommendations analytics={analytics} />
 
           {/* Detailed Analysis Section */}
           <DetailedAnalysis analytics={analytics} />

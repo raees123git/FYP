@@ -48,7 +48,7 @@ const PrioritizedActionItems = ({ actionItems }) => {
             transition={{ delay: 0.1 * index }}
           >
             <div
-              className="p-4 cursor-pointer hover:bg-card/50 transition-colors"
+              className="p-4 cursor-pointer hover:bg-indigo-500/10 transition-colors"
               onClick={() => setExpandedItem(expandedItem === index ? null : index)}
             >
               <div className="flex items-start justify-between">
@@ -93,16 +93,11 @@ const PrioritizedActionItems = ({ actionItems }) => {
 
 
                   {/* Progress Tracking */}
-                  <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
-                    <div>
-                      <p className="text-xs font-semibold">Expected Impact</p>
-                      <p className="text-sm text-muted-foreground">
-                        {Math.abs(actionItems[index]?.score || 15)}-{Math.abs(actionItems[index]?.score || 15) + 10}% improvement
-                      </p>
-                    </div>
-                    <button className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-                      Start Practice
-                    </button>
+                  <div className="p-3 bg-secondary rounded-lg">
+                    <p className="text-xs font-semibold">Expected Impact</p>
+                    <p className="text-sm text-muted-foreground">
+                      {Math.abs(actionItems[index]?.score || 15)}-{Math.abs(actionItems[index]?.score || 15) + 10}% improvement
+                    </p>
                   </div>
                 </div>
               </motion.div>

@@ -56,7 +56,7 @@ Generated: ${new Date().toLocaleString()}
         {actionItems.map((item, index) => (
           <motion.div
             key={index}
-            className="p-6 bg-card rounded-xl border border-border hover:border-primary/30 transition-all"
+            className="p-6 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl border border-indigo-500/20 hover:border-primary/30 transition-all"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 * index }}
@@ -103,7 +103,7 @@ Generated: ${new Date().toLocaleString()}
           </h3>
           <div className="grid grid-cols-1 gap-3">
             {actionItems.map((item, index) => (
-              <div key={index} className="p-3 bg-card rounded-lg">
+              <div key={index} className="p-3 bg-gradient-to-br from-gray-800/50 to-indigo-900/50 rounded-lg border border-indigo-500/20">
                 <div className="flex items-start justify-between mb-1">
                   <p className="text-sm font-medium">{item.item}</p>
                   <span className="text-xs px-2 py-1 bg-secondary rounded-full">
@@ -128,7 +128,7 @@ Generated: ${new Date().toLocaleString()}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.9 }}
       >
-        <div className="p-6 bg-card rounded-xl border border-border">
+        <div className="p-6 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl border border-blue-500/20">
           <h4 className="font-semibold mb-3">📚 Recommended Resources</h4>
           <ul className="space-y-2">
             <li className="text-sm text-muted-foreground">
@@ -146,7 +146,7 @@ Generated: ${new Date().toLocaleString()}
           </ul>
         </div>
 
-        <div className="p-6 bg-card rounded-xl border border-border">
+        <div className="p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl border border-purple-500/20">
           <h4 className="font-semibold mb-3">🎯 Your Next Steps</h4>
           <ol className="space-y-2">
             <li className="text-sm text-muted-foreground">

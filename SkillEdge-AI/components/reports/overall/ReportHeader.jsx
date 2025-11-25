@@ -18,18 +18,18 @@ const ReportHeader = ({ timestamp, readiness, summaryText }) => {
       </p>
       
       <div className="flex flex-wrap gap-4 justify-center">
-        <div className="flex items-center gap-2 px-4 py-2 bg-card rounded-lg border border-border">
+        <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-lg border border-indigo-500/20">
           <FileText className="w-4 h-4 text-primary" />
           <span className="text-sm">Integrated Analysis Report</span>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-card rounded-lg border border-border">
+        <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
           <Calendar className="w-4 h-4 text-accent" />
           <span className="text-sm">
             {timestamp ? new Date(timestamp).toLocaleDateString() : new Date().toLocaleDateString()}
           </span>
         </div>
         {readiness && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-card rounded-lg border border-border">
+          <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20">
             <Target className="w-4 h-4 text-green-500" />
             <span className="text-sm font-semibold text-green-500">{readiness}</span>
           </div>

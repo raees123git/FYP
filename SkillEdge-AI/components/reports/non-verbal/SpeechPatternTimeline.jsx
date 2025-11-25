@@ -48,19 +48,20 @@ export default function SpeechPatternTimeline({ analytics, audioMetrics }) {
               <div className="text-center">
                 <p className="text-xs text-gray-500">Start</p>
                 <p className="text-lg font-bold text-blue-400">
-                  {analytics.wordsPerMinute - 10 > 0 ? analytics.wordsPerMinute - 10 : analytics.wordsPerMinute} WPM
+                  {analytics.speaking_speed_evolution?.startWPM || 
+                   (analytics.wordsPerMinute - 10 > 0 ? analytics.wordsPerMinute - 10 : analytics.wordsPerMinute)} WPM
                 </p>
               </div>
               <div className="flex-1 flex items-center">
                 <div className="h-1 bg-gradient-to-r from-blue-400 to-green-400 rounded-full" style={{width: '100px'}}></div>
                 <TrendingUp className={`w-4 h-4 ml-2 ${
-                  analytics.wordsPerMinute > 140 ? 'text-green-400' : 'text-yellow-400'
+                  (analytics.speaking_speed_evolution?.trend === 'improving' || analytics.wordsPerMinute > 140) ? 'text-green-400' : 'text-yellow-400'
                 }`} />
               </div>
               <div className="text-center">
                 <p className="text-xs text-gray-500">End</p>
                 <p className="text-lg font-bold text-green-400">
-                  {analytics.wordsPerMinute + 10} WPM
+                  {analytics.speaking_speed_evolution?.endWPM || (analytics.wordsPerMinute + 10)} WPM
                 </p>
               </div>
             </div>
@@ -84,19 +85,19 @@ export default function SpeechPatternTimeline({ analytics, audioMetrics }) {
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500">Overall Journey</span>
                 <span className={`text-sm font-semibold ${
-                  audioMetrics.confidence.trend === 'improving' ? 'text-green-400' :
-                  audioMetrics.confidence.trend === 'declining' ? 'text-red-400' :
+                  (analytics.confidence_progression?.trend || audioMetrics.confidence.trend) === 'improving' ? 'text-green-400' :
+                  (analytics.confidence_progression?.trend || audioMetrics.confidence.trend) === 'declining' ? 'text-red-400' :
                   'text-yellow-400'
                 }`}>
-                  {audioMetrics.confidence.trend === 'improving' ? '↑ Improving' :
-                   audioMetrics.confidence.trend === 'declining' ? '↓ Declining' :
+                  {(analytics.confidence_progression?.trend || audioMetrics.confidence.trend) === 'improving' ? '↑ Improving' :
+                   (analytics.confidence_progression?.trend || audioMetrics.confidence.trend) === 'declining' ? '↓ Declining' :
                    '→ Stable'}
                 </span>
               </div>
               <div className="h-8 bg-gray-700 rounded-lg overflow-hidden relative">
                 <div 
                   className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg transition-all duration-500"
-                  style={{ width: `${audioMetrics.confidence.average * 100}%` }}
+                  style={{ width: `${(analytics.confidence_progression?.overall || audioMetrics.confidence.average) * 100}%` }}
                 >
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs font-bold text-white">
                     {Math.round(audioMetrics.confidence.average * 100)}%

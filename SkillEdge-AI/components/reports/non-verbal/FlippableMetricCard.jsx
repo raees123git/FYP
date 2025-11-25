@@ -31,7 +31,7 @@ export default function FlippableMetricCard({
         }
       `}</style>
       <motion.div
-        className="relative bg-card rounded-xl border border-border cursor-pointer h-56 hover:border-primary/50 transition-all"
+        className="relative bg-gradient-to-br from-gray-800/50 to-indigo-900/50 rounded-xl border border-indigo-500/20 cursor-pointer h-56 hover:border-primary/50 transition-all"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay }}
@@ -40,7 +40,7 @@ export default function FlippableMetricCard({
       >
         <div className={`absolute inset-0 w-full h-full transition-transform duration-700 ${isFlipped ? 'rotate-y-180' : ''}`} style={{ transformStyle: 'preserve-3d' }}>
           {/* Front Side */}
-          <div className="absolute inset-0 w-full h-full p-6 backface-hidden bg-card rounded-xl">
+          <div className="absolute inset-0 w-full h-full p-6 backface-hidden bg-gradient-to-br from-gray-800/50 to-indigo-900/50 rounded-xl">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
                 <Icon className="w-8 h-8 mr-3 text-primary" />

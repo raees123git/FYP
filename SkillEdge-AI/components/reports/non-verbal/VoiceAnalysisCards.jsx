@@ -26,7 +26,7 @@ export default function VoiceAnalysisCards({ audioMetrics }) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Pitch Analysis Card */}
         <motion.div
-          className="bg-card rounded-xl p-6 border border-border hover:border-primary/30 transition-all"
+          className="bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-xl p-6 border border-indigo-500/20 hover:border-primary/30 transition-all"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.6 }}
@@ -44,35 +44,35 @@ export default function VoiceAnalysisCards({ audioMetrics }) {
           <div className="space-y-3">
             <div>
               <p className="text-3xl font-bold text-primary">
-                {audioMetrics.pitch.average} Hz
+                {audioMetrics.pitch?.average || 'N/A'} {audioMetrics.pitch?.average ? 'Hz' : ''}
               </p>
               <p className="text-sm text-muted-foreground">Average Pitch</p>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Level:</span>
               <span className={`font-semibold ${
-                audioMetrics.pitch.predominantLevel === 'low' ? 'text-accent' :
-                audioMetrics.pitch.predominantLevel === 'high' ? 'text-primary' :
+                audioMetrics.pitch?.predominantLevel === 'low' ? 'text-accent' :
+                audioMetrics.pitch?.predominantLevel === 'high' ? 'text-primary' :
                 'text-green-500'
               }`}>
-                {audioMetrics.pitch.predominantLevel.charAt(0).toUpperCase() + audioMetrics.pitch.predominantLevel.slice(1)}
+                {audioMetrics.pitch?.predominantLevel ? audioMetrics.pitch.predominantLevel.charAt(0).toUpperCase() + audioMetrics.pitch.predominantLevel.slice(1) : 'N/A'}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Trend:</span>
               <span className="font-semibold text-accent">
-                {audioMetrics.pitch.predominantTrend.charAt(0).toUpperCase() + audioMetrics.pitch.predominantTrend.slice(1)}
+                {audioMetrics.pitch?.predominantTrend ? audioMetrics.pitch.predominantTrend.charAt(0).toUpperCase() + audioMetrics.pitch.predominantTrend.slice(1) : 'N/A'}
               </span>
             </div>
             <div className="mt-3">
               <div className="flex justify-between text-xs text-muted-foreground mb-1">
                 <span>Consistency</span>
-                <span>{Math.round(audioMetrics.pitch.consistency * 100)}%</span>
+                <span>{audioMetrics.pitch?.consistency ? Math.round(audioMetrics.pitch.consistency * 100) : 0}%</span>
               </div>
-              <div className="h-2 bg-secondary rounded-full overflow-hidden">
+              <div className="h-2 bg-gradient-to-r from-gray-700/40 to-gray-800/40 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-primary to-accent"
-                  style={{ width: `${audioMetrics.pitch.consistency * 100}%` }}
+                  style={{ width: `${audioMetrics.pitch?.consistency ? audioMetrics.pitch.consistency * 100 : 0}%` }}
                 />
               </div>
             </div>
@@ -81,7 +81,7 @@ export default function VoiceAnalysisCards({ audioMetrics }) {
         
         {/* Tone & Emotion Card */}
         <motion.div
-          className="bg-card rounded-xl p-6 border border-border hover:border-primary/30 transition-all"
+          className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-xl p-6 border border-purple-500/20 hover:border-primary/30 transition-all"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.7 }}
@@ -152,7 +152,7 @@ export default function VoiceAnalysisCards({ audioMetrics }) {
         
         {/* Voice Quality Card */}
         <motion.div
-          className="bg-card rounded-xl p-6 border border-border hover:border-primary/30 transition-all"
+          className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl p-6 border border-green-500/20 hover:border-primary/30 transition-all"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.8 }}
@@ -187,7 +187,7 @@ export default function VoiceAnalysisCards({ audioMetrics }) {
                      audioMetrics.voiceQuality.averageBreathiness < 0.6 ? 'Medium' : 'High'}
                   </span>
                 </div>
-                <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                <div className="h-1.5 bg-gradient-to-r from-gray-700/40 to-gray-800/40 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-primary to-accent"
                     style={{ width: `${(1 - audioMetrics.voiceQuality.averageBreathiness) * 100}%` }}

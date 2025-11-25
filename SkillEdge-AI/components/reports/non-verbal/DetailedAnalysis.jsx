@@ -5,7 +5,7 @@ import { formatTime } from "./utils";
 export default function DetailedAnalysis({ analytics }) {
   return (
     <motion.div
-      className="bg-card rounded-xl p-8 border border-border mb-10"
+      className="bg-gradient-to-br from-gray-800/50 to-indigo-900/50 rounded-xl p-8 border border-indigo-500/20 mb-10"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
@@ -23,21 +23,21 @@ export default function DetailedAnalysis({ analytics }) {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total Speaking Time:</span>
               <span className="font-semibold">
-                {formatTime(analytics.totalTime)}
+                {analytics.totalTime ? formatTime(analytics.totalTime) : 'N/A'}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total Words Spoken:</span>
-              <span className="font-semibold">{analytics.totalWords}</span>
+              <span className="font-semibold">{analytics.totalWords || 0}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Questions Answered:</span>
-              <span className="font-semibold">{analytics.questionCount}</span>
+              <span className="font-semibold">{analytics.questionCount || 0}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Avg Words per Answer:</span>
               <span className="font-semibold">
-                {Math.round(analytics.totalWords / analytics.questionCount)}
+                {analytics.totalWords && analytics.questionCount ? Math.round(analytics.totalWords / analytics.questionCount) : 'N/A'}
               </span>
             </div>
           </div>
@@ -50,27 +50,27 @@ export default function DetailedAnalysis({ analytics }) {
             Key Recommendations
           </h3>
           <div className="space-y-3">
-            {analytics.pauseAnalysis.recommendation && (
-              <div className="bg-secondary rounded-lg p-3">
+            {analytics.pauseAnalysis?.recommendation && (
+              <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-lg p-3 border border-indigo-500/20">
                 <p className="text-sm">{analytics.pauseAnalysis.recommendation}</p>
               </div>
             )}
-            {parseFloat(analytics.fillerPercentage) > 5 && (
-              <div className="bg-secondary rounded-lg p-3">
+            {parseFloat(analytics.fillerPercentage || 0) > 5 && (
+              <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg p-3 border border-orange-500/20">
                 <p className="text-sm">
                   Consider reducing filler words by practicing pause-and-think techniques.
                 </p>
               </div>
             )}
-            {analytics.wordsPerMinute < 120 && (
-              <div className="bg-secondary rounded-lg p-3">
+            {analytics.wordsPerMinute && analytics.wordsPerMinute < 120 && (
+              <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg p-3 border border-blue-500/20">
                 <p className="text-sm">
                   Try to speak slightly faster to maintain better engagement with your audience.
                 </p>
               </div>
             )}
-            {analytics.wordsPerMinute > 160 && (
-              <div className="bg-secondary rounded-lg p-3">
+            {analytics.wordsPerMinute && analytics.wordsPerMinute > 160 && (
+              <div className="bg-gradient-to-br from-amber-500/10 to-yellow-500/10 rounded-lg p-3 border border-amber-500/20">
                 <p className="text-sm">
                   Consider slowing down your speech for improved clarity and comprehension.
                 </p>

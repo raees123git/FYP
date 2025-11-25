@@ -4,6 +4,11 @@ import { motion } from "framer-motion";
 import { Brain, Mic, Link, TrendingUp } from "lucide-react";
 
 const OverallScoreComparison = ({ verbalScore, nonVerbalScore, correlationStrength }) => {
+  // Safely parse scores with fallback to 0
+  const safeVerbalScore = typeof verbalScore === 'number' && !isNaN(verbalScore) ? verbalScore : 0;
+  const safeNonVerbalScore = typeof nonVerbalScore === 'number' && !isNaN(nonVerbalScore) ? nonVerbalScore : 0;
+  const safeCorrelationStrength = typeof correlationStrength === 'number' && !isNaN(correlationStrength) ? correlationStrength : 0;
+  
   const getScoreColor = (score) => {
     if (score >= 80) return "text-green-500";
     if (score >= 60) return "text-primary";
@@ -30,21 +35,21 @@ const OverallScoreComparison = ({ verbalScore, nonVerbalScore, correlationStreng
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Verbal Score Card */}
-        <div className="bg-card p-6 rounded-xl border border-border hover:border-primary/30 transition-all">
+        <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 p-6 rounded-xl border border-indigo-500/20 hover:border-primary/30 transition-all">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-primary" />
               <h3 className="font-semibold">Verbal Performance</h3>
             </div>
-            <span className={`text-3xl font-bold ${getScoreColor(verbalScore)}`}>
-              {verbalScore}
+            <span className={`text-3xl font-bold ${getScoreColor(safeVerbalScore)}`}>
+              {Math.round(safeVerbalScore)}
             </span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-primary to-primary/60"
               initial={{ width: 0 }}
-              animate={{ width: getProgressWidth(verbalScore) }}
+              animate={{ width: getProgressWidth(safeVerbalScore) }}
               transition={{ duration: 1, delay: 0.3 }}
             />
           </div>
@@ -54,21 +59,21 @@ const OverallScoreComparison = ({ verbalScore, nonVerbalScore, correlationStreng
         </div>
 
         {/* Non-Verbal Score Card */}
-        <div className="bg-card p-6 rounded-xl border border-border hover:border-accent/30 transition-all">
+        <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 p-6 rounded-xl border border-purple-500/20 hover:border-accent/30 transition-all">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Mic className="w-5 h-5 text-accent" />
               <h3 className="font-semibold">Non-Verbal Performance</h3>
             </div>
-            <span className={`text-3xl font-bold ${getScoreColor(nonVerbalScore)}`}>
-              {Math.round(nonVerbalScore)}
+            <span className={`text-3xl font-bold ${getScoreColor(safeNonVerbalScore)}`}>
+              {Math.round(safeNonVerbalScore)}
             </span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-accent to-accent/60"
               initial={{ width: 0 }}
-              animate={{ width: getProgressWidth(nonVerbalScore) }}
+              animate={{ width: getProgressWidth(safeNonVerbalScore) }}
               transition={{ duration: 1, delay: 0.4 }}
             />
           </div>
@@ -84,15 +89,15 @@ const OverallScoreComparison = ({ verbalScore, nonVerbalScore, correlationStreng
               <Link className="w-5 h-5 text-primary" />
               <h3 className="font-semibold">Correlation Strength</h3>
             </div>
-            <span className={`text-3xl font-bold ${getCorrelationColor(correlationStrength)}`}>
-              {correlationStrength}%
+            <span className={`text-3xl font-bold ${getCorrelationColor(safeCorrelationStrength)}`}>
+              {Math.round(safeCorrelationStrength)}%
             </span>
           </div>
           <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-primary via-accent to-primary"
               initial={{ width: 0 }}
-              animate={{ width: getProgressWidth(correlationStrength) }}
+              animate={{ width: getProgressWidth(safeCorrelationStrength) }}
               transition={{ duration: 1, delay: 0.5 }}
             />
           </div>
@@ -104,7 +109,7 @@ const OverallScoreComparison = ({ verbalScore, nonVerbalScore, correlationStreng
 
       {/* Overall Assessment */}
       <motion.div
-        className="mt-6 p-4 bg-card rounded-xl border border-border"
+        className="mt-6 p-4 bg-gradient-to-br from-gray-800/50 to-indigo-900/50 rounded-xl border border-indigo-500/20"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
@@ -114,15 +119,15 @@ const OverallScoreComparison = ({ verbalScore, nonVerbalScore, correlationStreng
           <h4 className="font-semibold">Overall Assessment</h4>
         </div>
         <p className="text-sm text-muted-foreground">
-          {correlationStrength >= 80 ? (
+          {safeCorrelationStrength >= 80 ? (
             <>
               <span className="text-green-500 font-semibold">Excellent alignment!</span> Your verbal content and non-verbal delivery are well-synchronized, creating impactful communication.
             </>
-          ) : correlationStrength >= 60 ? (
+          ) : safeCorrelationStrength >= 60 ? (
             <>
               <span className="text-primary font-semibold">Good balance</span> with room for improvement. Focus on better aligning your delivery with your content knowledge.
             </>
-          ) : verbalScore > nonVerbalScore ? (
+          ) : safeVerbalScore > safeNonVerbalScore ? (
             <>
               <span className="text-accent font-semibold">Content-strong profile:</span> Your knowledge exceeds your delivery skills. Prioritize improving non-verbal communication.
             </>

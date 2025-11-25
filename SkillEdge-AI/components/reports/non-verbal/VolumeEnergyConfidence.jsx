@@ -34,13 +34,13 @@ export default function VolumeEnergyConfidence({ audioMetrics }) {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-2xl font-bold text-orange-300 capitalize">
-                {audioMetrics.energy.predominantVolume.replace('_', ' ')}
+                {audioMetrics.energy?.predominantVolume ? audioMetrics.energy.predominantVolume.replace('_', ' ') : 'N/A'}
               </p>
               <p className="text-sm text-gray-400">Volume Level</p>
             </div>
             <div className="text-right">
               <p className="text-lg font-semibold text-yellow-400">
-                {audioMetrics.energy.averageBrightness} Hz
+                {audioMetrics.energy?.averageBrightness || 'N/A'} {audioMetrics.energy?.averageBrightness ? 'Hz' : ''}
               </p>
               <p className="text-xs text-gray-400">Brightness</p>
             </div>
@@ -51,11 +51,11 @@ export default function VolumeEnergyConfidence({ audioMetrics }) {
               <div className="flex-1 h-3 bg-gray-700 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-orange-400 to-red-400"
-                  style={{ width: `${audioMetrics.energy.volumeConsistency * 100}%` }}
+                  style={{ width: `${audioMetrics.energy?.volumeConsistency ? audioMetrics.energy.volumeConsistency * 100 : 0}%` }}
                 />
               </div>
               <span className="ml-3 text-sm font-semibold text-orange-300">
-                {Math.round(audioMetrics.energy.volumeConsistency * 100)}%
+                {audioMetrics.energy?.volumeConsistency ? Math.round(audioMetrics.energy.volumeConsistency * 100) : 0}%
               </span>
             </div>
           </div>
@@ -84,7 +84,7 @@ export default function VolumeEnergyConfidence({ audioMetrics }) {
             <div className="relative h-32 flex items-end justify-center">
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-5xl font-bold text-indigo-300">
-                  {Math.round(audioMetrics.confidence.average * 100)}%
+                  {audioMetrics.confidence?.average ? Math.round(audioMetrics.confidence.average * 100) : 0}%
                 </div>
               </div>
               <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
@@ -105,7 +105,7 @@ export default function VolumeEnergyConfidence({ audioMetrics }) {
                   stroke="url(#confidence-gradient)"
                   strokeWidth="4"
                   strokeLinecap="round"
-                  strokeDasharray={`${audioMetrics.confidence.average * 283} 283`}
+                  strokeDasharray={`${audioMetrics.confidence?.average ? audioMetrics.confidence.average * 283 : 0} 283`}
                   transform="rotate(-90 50 50)"
                 />
                 <defs>
@@ -121,13 +121,13 @@ export default function VolumeEnergyConfidence({ audioMetrics }) {
             <div>
               <p className="text-xs text-gray-400">Consistency</p>
               <p className="text-lg font-semibold text-indigo-300">
-                {Math.round(audioMetrics.confidence.consistency * 100)}%
+                {audioMetrics.confidence?.consistency ? Math.round(audioMetrics.confidence.consistency * 100) : 0}%
               </p>
             </div>
             <div>
               <p className="text-xs text-gray-400">Trend</p>
               <p className="text-lg font-semibold text-indigo-300 capitalize">
-                {audioMetrics.confidence.trend}
+                {audioMetrics.confidence?.trend || 'N/A'}
               </p>
             </div>
           </div>

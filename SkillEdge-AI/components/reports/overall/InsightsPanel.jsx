@@ -76,7 +76,7 @@ const InsightsPanel = ({ correlations, verbalData, nonVerbalData, summaryText })
               {getInsightIcon(insight.type)}
               <div className="flex-1">
                 <h3 className="font-semibold mb-1">{insight.title}</h3>
-                <p className="text-sm text-muted-foreground mb-2">{insight.description}</p>
+                <p className="text-sm text-muted-foreground mb-2">{insight.message || insight.description}</p>
                 {insight.dataPoint && (
                   <div className="inline-flex items-center gap-1 px-2 py-1 bg-card rounded-lg text-xs">
                     <span className="font-mono font-semibold">{insight.dataPoint}</span>

@@ -143,7 +143,11 @@ export default function InterviewDetailsPage() {
       case 'nonverbal':
         return <NonVerbalReportViewer data={data} />;
       case 'overall':
-        return <OverallReportViewer data={data} />;
+        return <OverallReportViewer 
+          data={data} 
+          verbalData={interviewData?.verbal_report}
+          nonVerbalData={interviewData?.nonverbal_report}
+        />;
       default:
         return null;
     }

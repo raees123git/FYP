@@ -284,13 +284,49 @@ async def get_interview_details(
             {"interview_id": interview_id, "user_id": user_id}
         )
         if nonverbal_report:
-            nonverbal_report["_id"] = str(nonverbal_report["_id"])
+            original_id = str(nonverbal_report["_id"])
+            
             # Unwrap analytics to match viewer expectations
             if "analytics" in nonverbal_report:
-                analytics_data = nonverbal_report.pop("analytics")
-                # If analytics_data is a dict, merge it at the root level
-                if isinstance(analytics_data, dict):
-                    nonverbal_report.update(analytics_data)
+                # The comprehensive report is stored under "analytics" key
+                comprehensive_data = nonverbal_report["analytics"]
+                
+                # Check if this is the comprehensive format with nested analytics
+                if isinstance(comprehensive_data, dict) and "analytics" in comprehensive_data:
+                    # This is the comprehensive report - flatten it completely
+                    analytics = comprehensive_data.pop("analytics", {})
+                    audio_metrics = comprehensive_data.pop("audioMetrics", None)
+                    
+                    # Start with the comprehensive data (has all the extra fields)
+                    nonverbal_report = comprehensive_data.copy()
+                    
+                    # Merge in analytics fields at root level
+                    if isinstance(analytics, dict):
+                        for key, value in analytics.items():
+                            if key not in nonverbal_report:
+                                nonverbal_report[key] = value
+                    
+                    # Ensure audioMetrics is available at root
+                    if audio_metrics:
+                        nonverbal_report["audioMetrics"] = audio_metrics
+                        
+                elif isinstance(comprehensive_data, dict):
+                    # Simple analytics format - use as is
+                    nonverbal_report = comprehensive_data.copy()
+            
+            # Preserve the ID
+            nonverbal_report["_id"] = original_id
+            
+            # Ensure required fields exist with fallbacks
+            if not nonverbal_report.get("speakingStats"):
+                # Try to build from analytics data
+                analytics = nonverbal_report.get("analytics", nonverbal_report)
+                nonverbal_report["speakingStats"] = {
+                    "totalSpeakingTime": analytics.get("totalTime", 0),
+                    "totalWordsSpoken": analytics.get("totalWords", 0),
+                    "questionsAnswered": analytics.get("questionCount", 0),
+                    "avgWordsPerAnswer": round(analytics.get("totalWords", 0) / max(analytics.get("questionCount", 1), 1)) if analytics.get("totalWords", 0) > 0 else 0
+                }
         
         overall_report = await overall_reports_collection.find_one(
             {"interview_id": interview_id, "user_id": user_id}

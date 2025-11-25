@@ -90,7 +90,7 @@ const ImpactAnalysisCards = ({ correlations }) => {
           {positiveImpacts.length > 0 ? (
             <div className="space-y-3">
               {positiveImpacts.map((impact) => (
-                <div key={impact.name} className="flex items-center justify-between p-3 bg-card rounded-lg">
+                <div key={impact.name} className="flex items-center justify-between p-3 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500" />
                     <span className="text-sm font-medium">{impact.name}</span>
@@ -122,7 +122,7 @@ const ImpactAnalysisCards = ({ correlations }) => {
           {negativeImpacts.length > 0 ? (
             <div className="space-y-3">
               {negativeImpacts.slice(0, 3).map((impact) => (
-                <div key={impact.name} className="flex items-center justify-between p-3 bg-card rounded-lg">
+                <div key={impact.name} className="flex items-center justify-between p-3 bg-gradient-to-br from-red-500/10 to-orange-500/10 rounded-lg border border-red-500/20">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-destructive" />
                     <span className="text-sm font-medium">{impact.name}</span>
@@ -142,7 +142,7 @@ const ImpactAnalysisCards = ({ correlations }) => {
 
       {/* Net Impact Summary */}
       <motion.div
-        className="p-6 bg-card rounded-xl border border-border"
+        className="p-6 bg-gradient-to-br from-gray-800/50 to-indigo-900/50 rounded-xl border border-indigo-500/20"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}

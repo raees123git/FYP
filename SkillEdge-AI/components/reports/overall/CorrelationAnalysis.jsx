@@ -90,11 +90,11 @@ const CorrelationAnalysis = ({ correlations }) => {
                 {/* Special handling for confidence correlation */}
                 {analysis.data?.verbalConfidence && (
                   <div className="grid grid-cols-2 gap-4 mb-3">
-                    <div className="p-3 bg-card rounded-lg">
+                    <div className="p-3 bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-lg border border-indigo-500/20">
                       <p className="text-xs text-muted-foreground mb-1">Verbal Confidence</p>
                       <p className="font-semibold text-primary">{analysis.data.verbalConfidence}%</p>
                     </div>
-                    <div className="p-3 bg-card rounded-lg">
+                    <div className="p-3 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/20">
                       <p className="text-xs text-muted-foreground mb-1">Non-Verbal Confidence</p>
                       <p className="font-semibold text-accent">{analysis.data.nonVerbalConfidence}%</p>
                     </div>
@@ -131,7 +131,7 @@ const CorrelationAnalysis = ({ correlations }) => {
 
                 {/* Recommendation */}
                 {analysis.data?.recommendation && (
-                  <div className="mt-3 p-3 bg-card rounded-lg border border-border">
+                  <div className="mt-3 p-3 bg-gradient-to-br from-gray-800/50 to-indigo-900/50 rounded-lg border border-indigo-500/20">
                     <p className="text-xs font-semibold mb-1 text-primary">Recommendation:</p>
                     <p className="text-sm">{analysis.data.recommendation}</p>
                   </div>
