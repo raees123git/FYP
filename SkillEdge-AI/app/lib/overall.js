@@ -280,6 +280,36 @@ export function generateOverallAnalysis(verbalReport, nonVerbalReport, interview
     negativeCount: negativeImpacts.length
   });
   
+  // Generate next_steps from action items
+  const next_steps = [
+    verbalScore < 70 ? "Practice technical knowledge through mock interviews and study sessions" : null,
+    nonVerbalScore < 70 ? "Work on communication delivery through presentation practice and vocal exercises" : null,
+    Math.abs(verbalScore - nonVerbalScore) > 30 ? "Balance content knowledge with presentation skills through integrated practice" : null,
+    "Record yourself answering common interview questions",
+    "Focus on reducing filler words and improving pause patterns",
+    "Build confidence through consistent practice and feedback"
+  ].filter(Boolean);
+  
+  // Generate pro_tip based on priorities
+  const highPriorityCount = [verbalScore < 70, nonVerbalScore < 70].filter(Boolean).length;
+  const pro_tip = highPriorityCount >= 2 
+    ? "Focus on completing the top 2 critical actions first for maximum impact on your interview performance."
+    : "Maintain your strong areas while gradually improving the identified weak points for balanced growth.";
+  
+  // Generate quick_win from most critical issue
+  const quick_win = negativeImpacts.length > 0 
+    ? `Fix ${negativeImpacts[0].name}` 
+    : "Maintain Excellence";
+  
+  // Calculate estimated_time_to_complete
+  const totalActions = [verbalScore < 70, nonVerbalScore < 70, Math.abs(verbalScore - nonVerbalScore) > 30].filter(Boolean).length;
+  const estimated_time_to_complete = totalActions >= 2 ? "4-6 weeks" : totalActions === 1 ? "2-3 weeks" : "1-2 weeks";
+  
+  // Generate key_insight_narrative
+  const key_insight_narrative = totalNegative > totalPositive
+    ? `Addressing your top 2-3 improvement areas could boost your overall performance by up to ${Math.round(totalNegative * 0.7)}%. Priority focus areas: ${negativeImpacts.slice(0, 3).map(i => i.name).join(', ')}.`
+    : `Your strong performance areas (${positiveImpacts.map(i => i.name).join(', ')}) are effectively compensating for minor weaknesses. Focus on maintaining these strengths while gradually improving weak areas.`;
+  
   // Store ONLY the data that is displayed in the overall report page
   const overallData = {
     // Core scores displayed
@@ -333,7 +363,14 @@ export function generateOverallAnalysis(verbalReport, nonVerbalReport, interview
     // Impact Analysis data for database storage
     impactAnalysis: impactAnalysis,
     
-    summary: `Overall performance score: ${overallScore}/100. ${readiness === 'excellent' ? 'Excellent performance! You demonstrate strong technical knowledge and communication skills.' : readiness === 'ready' ? 'Good job! You are interview ready with minor areas for improvement.' : readiness === 'needs improvement' ? 'Keep practicing to improve your interview skills.' : 'Significant preparation needed before interviews.'}`
+    summary: `Overall performance score: ${overallScore}/100. ${readiness === 'excellent' ? 'Excellent performance! You demonstrate strong technical knowledge and communication skills.' : readiness === 'ready' ? 'Good job! You are interview ready with minor areas for improvement.' : readiness === 'needs improvement' ? 'Keep practicing to improve your interview skills.' : 'Significant preparation needed before interviews.'}`,
+    
+    // New enhanced fields for database storage
+    next_steps: next_steps,
+    pro_tip: pro_tip,
+    quick_win: quick_win,
+    estimated_time_to_complete: estimated_time_to_complete,
+    key_insight_narrative: key_insight_narrative
   };
   
   // Persist for report pages

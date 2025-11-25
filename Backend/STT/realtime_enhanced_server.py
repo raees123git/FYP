@@ -26,7 +26,7 @@ FRAME_SIZE = int(SAMPLE_RATE * FRAME_MS / 1000)
 CHANNELS = 1
 
 # ---- Configure model ----
-MODEL_SIZE = "small.en"
+MODEL_SIZE = "medium.en"
 model = WhisperModel(
     MODEL_SIZE,
     device="cuda",
@@ -159,26 +159,29 @@ def transcribe_stream():
                 except Exception as e:
                     print(f"Audio analysis warning: {e}")
 
-            # Transcribe
+            # Transcribe with aggressive anti-hallucination settings
             t0 = time.time()
             segments, info = model.transcribe(
                 audio_chunk,
                 language="en",
                 task="transcribe",
-                beam_size=10,
-                best_of=10,
+                beam_size=3,  # Reduced further
+                best_of=3,  # Reduced further
                 temperature=0.0,
                 vad_filter=True,
-                condition_on_previous_text=True,
-                compression_ratio_threshold=2.0,
-                log_prob_threshold=-0.5,
-                no_speech_threshold=0.6,
-                word_timestamps=False,
+                condition_on_previous_text=False,
+                compression_ratio_threshold=2.8,  # More aggressive
+                log_prob_threshold=-0.8,  # Stricter
+                no_speech_threshold=0.5,  # Lower to detect actual speech better
+                word_timestamps=True,  # Enable to check word-level confidence
+                initial_prompt=None,
+                repetition_penalty=1.2,  # Add penalty for repetition
             )
             t1 = time.time()
             elapsed = t1 - t0
 
-            if hasattr(info, "no_speech_prob") and info.no_speech_prob > 0.8:
+            # Stricter no-speech filtering
+            if hasattr(info, "no_speech_prob") and info.no_speech_prob > 0.7:
                 continue
 
             for seg in segments:
@@ -189,8 +192,87 @@ def transcribe_stream():
                 if not text:
                     continue
 
-                blacklist = ["It is beautiful.","thanks for watching!", "thank you for watching!", "subscribe", "bye.","I love you","Thank you very much.","Confidence"]
-                if text.lower() in blacklist:
+                # Check average log probability first (aggressive filter)
+                if hasattr(seg, 'avg_logprob') and seg.avg_logprob < -0.8:
+                    continue
+
+                # Enhanced blacklist with common Whisper hallucinations
+                blacklist = [
+                    "Do you realize anything in a better way",
+                    "see you next week",
+                    "That's how it is",
+                    "it is beautiful",
+                    "thanks for watching",
+                    "thank you for watching",
+                    "thank you",
+                    "thank you very much",
+                    "thanks",
+                    "subscribe",
+                    "bye",
+                    "bye bye",
+                    "see ya",
+                    "have a good week",
+                    "have a good day",
+                    "good morning",
+                    "good night",
+                    "i love you",
+                    "confidence",
+                    "hello",
+                    "wait",
+                    "whoa",
+                    "oh my god",
+                    "oh my gosh",
+                    "this is our",
+                    "video",
+                    "of this video",
+                ]
+                
+                # Normalize text
+                normalized_text = text.lower().rstrip('.!?,')
+                
+                # Exact match check
+                if normalized_text in blacklist:
+                    continue
+                
+                # Aggressive partial match check for hallucination patterns
+                hallucination_patterns = [
+                    "thank you",
+                    "thanks",
+                    "subscribe",
+                    "this is our",
+                    "video",
+                    "have a good",
+                    "good morning",
+                    "good night",
+                    "see ya",
+                    "oh my god",
+                    "oh my gosh",
+                    "path of god",
+                    "didn't hurt",
+                    "what's ever",
+                    "who are you",
+                    "i'll be there",
+                    "he's here",
+                    "whoa",
+                ]
+                
+                if any(pattern in normalized_text for pattern in hallucination_patterns):
+                    continue
+                
+                # Filter segments with religious/dramatic phrases (common hallucinations)
+                religious_dramatic = ["god", "lord", "heaven", "hell", "pray", "soul"]
+                if any(word in normalized_text.split() for word in religious_dramatic):
+                    continue
+                
+                # Filter very short or very generic segments
+                words = text.split()
+                if len(words) < 3:
+                    generic_short = ["hello", "wait", "bye", "thank you", "thanks", "yes", "no", "okay", "ok"]
+                    if normalized_text in generic_short:
+                        continue
+                
+                # Check compression ratio (repetitive text indicator)
+                if hasattr(seg, 'compression_ratio') and seg.compression_ratio > 2.8:
                     continue
 
                 # Print to console

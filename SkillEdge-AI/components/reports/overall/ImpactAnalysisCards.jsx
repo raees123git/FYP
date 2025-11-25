@@ -6,6 +6,12 @@ import { TrendingDown, TrendingUp, AlertCircle, CheckCircle, Zap } from "lucide-
 const ImpactAnalysisCards = ({ correlations }) => {
   if (!correlations) return null;
 
+  // Get dynamic values from stored overall analysis
+  const storedOverallAnalysis = typeof localStorage !== 'undefined' ? localStorage.getItem("overallAnalysis") : null;
+  const overallData = storedOverallAnalysis ? JSON.parse(storedOverallAnalysis) : null;
+  const quickWin = overallData?.quick_win || "Fix Critical Issues";
+  const keyInsight = overallData?.key_insight_narrative || "Focus on identified improvement areas for better results.";
+
   // Calculate total impact scores
   const impacts = [
     {
@@ -178,7 +184,7 @@ const ImpactAnalysisCards = ({ correlations }) => {
           <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
             <p className="text-xs font-semibold text-primary mb-1">Quick Win</p>
             <p className="text-sm font-medium">
-              {negativeImpacts.length > 0 ? `Fix ${negativeImpacts[0].name}` : "Maintain Excellence"}
+              {quickWin}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               Potential: +{Math.abs(negativeImpacts[0]?.score || 0)} points
@@ -188,12 +194,7 @@ const ImpactAnalysisCards = ({ correlations }) => {
 
         <div className="mt-4 p-3 bg-secondary rounded-lg">
           <p className="text-sm text-muted-foreground">
-            <span className="font-semibold">Key Insight:</span> 
-            {totalNegative > totalPositive ? (
-              <> Addressing your top 2-3 improvement areas could boost your overall performance by up to <span className="font-bold text-primary">{Math.round(totalNegative * 0.7)}%</span>.</>
-            ) : (
-              <> Your strong performance areas are effectively compensating for minor weaknesses. Focus on maintaining these strengths while gradually improving weak areas.</>
-            )}
+            <span className="font-semibold">Key Insight:</span> {keyInsight}
           </p>
         </div>
       </motion.div>

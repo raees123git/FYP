@@ -185,7 +185,14 @@ class OverallReport(BaseModel):
     correlations: Dict[str, Any] = Field(default_factory=dict)
     action_items: List[Dict[str, Any]] = Field(default_factory=list)
     insights: Dict[str, Any] = Field(default_factory=dict)
+    impactAnalysis: Optional[Dict[str, Any]] = Field(default=None, description="Impact analysis data")
     summary: str
+    # New fields for enhanced reporting
+    next_steps: Optional[List[str]] = Field(default=None, description="Step-by-step actions for improvement")
+    pro_tip: Optional[str] = Field(default=None, description="Guidance on how to prioritize actions")
+    quick_win: Optional[str] = Field(default=None, description="Labeled quick win from report")
+    estimated_time_to_complete: Optional[str] = Field(default=None, description="Estimated time to complete action items")
+    key_insight_narrative: Optional[str] = Field(default=None, description="Narrative insight summarizing strengths vs weaknesses")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:

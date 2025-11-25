@@ -9,6 +9,12 @@ const PrioritizedActionItems = ({ actionItems }) => {
 
   if (!actionItems || actionItems.length === 0) return null;
 
+  // Get dynamic values from stored overall analysis
+  const storedOverallAnalysis = typeof localStorage !== 'undefined' ? localStorage.getItem("overallAnalysis") : null;
+  const overallData = storedOverallAnalysis ? JSON.parse(storedOverallAnalysis) : null;
+  const estimatedTime = overallData?.estimated_time_to_complete || "4-6 weeks";
+  const proTip = overallData?.pro_tip || "Focus on completing the top 2 critical actions first for maximum impact on your interview performance.";
+
   const getImpactIcon = (priority) => {
     if (priority === "high") return <AlertTriangle className="w-4 h-4 text-destructive" />;
     if (priority === "medium") return <Zap className="w-4 h-4 text-accent" />;
@@ -129,11 +135,11 @@ const PrioritizedActionItems = ({ actionItems }) => {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Est. Time to Complete</p>
-            <p className="text-xl font-bold">4-6 weeks</p>
+            <p className="text-xl font-bold">{estimatedTime}</p>
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-3">
-          💡 <span className="font-semibold">Pro Tip:</span> Focus on completing the top 2 critical actions first for maximum impact on your interview performance.
+          💡 <span className="font-semibold">Pro Tip:</span> {proTip}
         </p>
       </motion.div>
     </motion.div>
