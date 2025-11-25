@@ -37,6 +37,13 @@ export default function InterviewDetailsPage() {
     }
   }, [isAuthenticated, authLoading, router]);
 
+  // Fetch interview details
+  useEffect(() => {
+    if (interviewId && isAuthenticated && !authLoading) {
+      fetchInterviewDetails();
+    }
+  }, [interviewId, isAuthenticated, authLoading]);
+
   // Show loading state while checking authentication
   if (authLoading) {
     return (
@@ -53,13 +60,6 @@ export default function InterviewDetailsPage() {
   if (!isAuthenticated) {
     return null;
   }
-
-
-  useEffect(() => {
-    if (interviewId) {
-      fetchInterviewDetails();
-    }
-  }, [interviewId]);
 
   const fetchInterviewDetails = async () => {
     try {

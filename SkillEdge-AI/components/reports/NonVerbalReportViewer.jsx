@@ -61,10 +61,11 @@ export const NonVerbalReportViewer = ({ data }) => {
     visible: { opacity: 1, y: 0 }
   };
 
-  // The analytics data is nested in data.analytics based on the backend structure
-  const analytics = data.analytics || data;
+  // The data structure after backend unwrapping has all fields at root level
+  // Use data directly since it's already unwrapped
+  const analytics = data;
   
-  if (!analytics) {
+  if (!analytics || !analytics.speakingStats) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-400">No non-verbal analytics data available</p>

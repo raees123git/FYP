@@ -281,6 +281,12 @@ async def get_interview_details(
         )
         if nonverbal_report:
             nonverbal_report["_id"] = str(nonverbal_report["_id"])
+            # Unwrap analytics to match viewer expectations
+            if "analytics" in nonverbal_report:
+                analytics_data = nonverbal_report.pop("analytics")
+                # If analytics_data is a dict, merge it at the root level
+                if isinstance(analytics_data, dict):
+                    nonverbal_report.update(analytics_data)
         
         overall_report = await overall_reports_collection.find_one(
             {"interview_id": interview_id, "user_id": user_id}
