@@ -153,6 +153,8 @@ class VerbalReport(BaseModel):
     interview_readiness: str = Field(default="")
     strengths: List[str] = Field(default_factory=list)
     improvements: List[str] = Field(default_factory=list)
+    questions: List[str] = Field(default_factory=list, description="Interview questions")
+    answers: List[str] = Field(default_factory=list, description="User's answers to the questions")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:

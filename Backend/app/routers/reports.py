@@ -132,6 +132,8 @@ async def save_interview_report(
                 "user_id": user_id,
                 "interview_id": interview_id,
                 **request.verbal_report,  # Spread all verbal report data
+                "questions": request.questions,  # Include questions
+                "answers": request.answers,  # Include answers
                 "created_at": current_time
             }
             

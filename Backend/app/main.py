@@ -313,6 +313,22 @@ async def analyze_verbal_report(request: VerbalReportRequest):
     if len(request.questions) != len(request.answers):
         raise HTTPException(status_code=400, detail="Questions and answers count mismatch")
     
+    def safe_json_parse(text):
+        """Safely parse Gemini JSON, fix minor formatting issues."""
+        cleaned = text.replace("```json", "").replace("```", "").strip()
+        # Fix trailing commas before } or ]
+        cleaned = re.sub(r",\s*}", "}", cleaned)
+        cleaned = re.sub(r",\s*]", "]", cleaned)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            # Return fallback structure to avoid crashing
+            return {
+                "overall_score": 0,
+                "summary": "Invalid response received",
+                "raw_response": cleaned
+            }
+    
     try:
         # Prepare the prompt for Gemini
         prompt = f"""
@@ -401,7 +417,7 @@ async def analyze_verbal_report(request: VerbalReportRequest):
             else:
                 raise ValueError("No valid JSON found in response")
         except json.JSONDecodeError as e:
-            print(f"Failed to parse Gemini response: {response_text}")
+            print(f"Failed to parse Model response: {response_text}")
             raise HTTPException(status_code=500, detail=f"Failed to parse analysis: {str(e)}")
         
         return analysis

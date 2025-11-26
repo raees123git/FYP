@@ -26,6 +26,7 @@ export default function InterviewSimulatorWithVoice() {
   const [countdown, setCountdown] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
+  const [avatarSpeaking, setAvatarSpeaking] = useState(false);
 
   const timerRef = useRef(null);
   const videoRef = useRef(null);
@@ -247,8 +248,14 @@ export default function InterviewSimulatorWithVoice() {
     setCountdown(null);
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    utterance.onstart = () => setSpoken(true);
-    utterance.onend = () => setSpoken(false);
+    utterance.onstart = () => {
+      setSpoken(true);
+      setAvatarSpeaking(true);
+    };
+    utterance.onend = () => {
+      setSpoken(false);
+      setAvatarSpeaking(false);
+    };
     speechSynthesis.speak(utterance);
   }, []);
 
@@ -368,7 +375,7 @@ export default function InterviewSimulatorWithVoice() {
       </h1>
 
       <div className="mt-28 sm:mt-32 flex flex-col sm:flex-row items-center justify-center w-full max-w-7xl mx-auto gap-6 sm:gap-10">
-        {!isMobile && <AvatarSection videoRef={videoRef} />}
+        {!isMobile && <AvatarSection videoRef={videoRef} isSpeaking={avatarSpeaking} />}
 
         <div className={`w-full ${!isMobile ? "sm:w-2/3" : ""} space-y-4 sm:space-y-6`}>
           {countdown !== null && (

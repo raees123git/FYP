@@ -516,6 +516,41 @@ export const VerbalReportViewer = ({ data }) => {
                       className="border-t border-teal-500/20"
                     >
                       <div className="p-6">
+                        {/* Question and Answer Display */}
+                        {(data.questions?.[index] || data.answers?.[index]) && (
+                          <div className="mb-6 space-y-4">
+                            {/* Question */}
+                            {data.questions?.[index] && (
+                              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                  <div className="flex-shrink-0 w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center mt-1">
+                                    <span className="text-blue-400 font-bold text-xs">Q</span>
+                                  </div>
+                                  <div className="flex-1">
+                                    <h5 className="text-sm font-semibold text-blue-300 mb-2">Question</h5>
+                                    <p className="text-gray-300 leading-relaxed">{data.questions[index]}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Answer */}
+                            {data.answers?.[index] && (
+                              <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                  <div className="flex-shrink-0 w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center mt-1">
+                                    <span className="text-purple-400 font-bold text-xs">A</span>
+                                  </div>
+                                  <div className="flex-1">
+                                    <h5 className="text-sm font-semibold text-purple-300 mb-2">Your Answer</h5>
+                                    <p className="text-gray-300 leading-relaxed">{data.answers[index]}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
                         {/* Content Grid */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           
