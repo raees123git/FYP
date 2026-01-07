@@ -236,7 +236,7 @@ async def upload_resume(
     file: UploadFile = File(...),
     user_id: str = Depends(get_current_user)
 ):
-    """Upload a resume PDF file"""
+    """Upload a resume PDF file and index it for chatbot RAG"""
     try:
         # Validate file type
         if not file.filename.lower().endswith('.pdf'):
@@ -247,7 +247,31 @@ async def upload_resume(
         if len(file_content) > 10 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
         
-        # Upload to GridFS
+        # Check if user already has a resume and delete it
+        profiles_collection = get_profiles_collection()
+        existing_profile = await profiles_collection.find_one({"user_id": user_id})
+        
+        if existing_profile and existing_profile.get("resume_file_id"):
+            old_file_id = existing_profile["resume_file_id"]
+            print(f"User {user_id} has existing resume, deleting old file and index...")
+            
+            # Delete old resume file from GridFS
+            try:
+                await FileHandler.delete_resume(old_file_id)
+                print(f"Deleted old resume file: {old_file_id}")
+            except Exception as e:
+                print(f"Warning: Failed to delete old resume file: {e}")
+            
+            # Delete old vector index
+            try:
+                from app.chatbot.resume_rag import get_resume_rag_service
+                resume_rag = get_resume_rag_service()
+                await resume_rag.delete_user_resume_index(user_id)
+                print(f"Deleted old resume index for user {user_id}")
+            except Exception as e:
+                print(f"Warning: Failed to delete old resume index: {e}")
+        
+        # Upload new resume to GridFS
         result = await FileHandler.upload_resume(
             file_content=file_content,
             filename=file.filename,
@@ -255,8 +279,7 @@ async def upload_resume(
         )
         
         if result["success"]:
-            # Update user profile with resume file ID
-            profiles_collection = get_profiles_collection()
+            # Update user profile with new resume file ID
             await profiles_collection.update_one(
                 {"user_id": user_id},
                 {
@@ -267,6 +290,22 @@ async def upload_resume(
                     }
                 }
             )
+            
+            # Index resume for chatbot RAG
+            try:
+                from app.chatbot.resume_rag import get_resume_rag_service
+                resume_rag = get_resume_rag_service()
+                
+                # Index the resume in background (async)
+                index_result = await resume_rag.index_user_resume(user_id, result["file_id"])
+                
+                if index_result.get("success"):
+                    print(f"Resume indexed successfully for user {user_id}: {index_result.get('chunks', 0)} chunks")
+                else:
+                    print(f"Warning: Resume uploaded but indexing failed: {index_result.get('error', 'Unknown error')}")
+            except Exception as index_error:
+                # Don't fail the upload if indexing fails, just log it
+                print(f"Warning: Resume uploaded but indexing failed: {str(index_error)}")
             
             return {
                 "success": True,
@@ -320,7 +359,7 @@ async def delete_resume(
     file_id: str,
     user_id: str = Depends(get_current_user)
 ):
-    """Delete a resume file"""
+    """Delete a resume file and its vector index"""
     try:
         # First verify the file belongs to the user
         result = await FileHandler.download_resume(file_id)
@@ -344,6 +383,15 @@ async def delete_resume(
                     }
                 }
             )
+            
+            # Delete resume vector index
+            try:
+                from app.chatbot.resume_rag import get_resume_rag_service
+                resume_rag = get_resume_rag_service()
+                await resume_rag.delete_user_resume_index(user_id)
+                print(f"Resume index deleted for user {user_id}")
+            except Exception as index_error:
+                print(f"Warning: Resume deleted but index cleanup failed: {str(index_error)}")
             
             return {
                 "success": True,

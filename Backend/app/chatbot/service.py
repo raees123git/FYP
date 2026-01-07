@@ -2,6 +2,7 @@
 """
 Advanced RAG-based chatbot service using FAISS vector database and Gemini API
 Handles both general SkillEdge-AI queries and personalized report analysis
+Now includes resume-based context retrieval
 """
 
 import os
@@ -54,7 +55,7 @@ class ChatbotService:
             gemini_api_key = os.getenv("GEMINI_API_KEY")
             if gemini_api_key:
                 genai.configure(api_key=gemini_api_key)
-                self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+                self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
                 logger.info("Gemini API initialized successfully")
             else:
                 raise ValueError("GEMINI_API_KEY not found in environment variables")
@@ -266,7 +267,9 @@ class ChatbotService:
                               query: str, 
                               context: List[Dict[str, Any]] = None,
                               user_reports: Dict[str, Any] = None,
-                              conversation_history: List[Dict[str, str]] = None) -> str:
+                              conversation_history: List[Dict[str, str]] = None,
+                              user_id: str = None,
+                              include_resume: bool = False) -> str:
         """Generate response using Gemini API with RAG context"""
         try:
             # Search knowledge base for relevant information
@@ -274,6 +277,25 @@ class ChatbotService:
             
             # Build context for LLM
             context_text = ""
+            
+            # Add resume context if requested and available
+            resume_context = []
+            if include_resume and user_id:
+                from app.chatbot.resume_rag import get_resume_rag_service
+                resume_rag = get_resume_rag_service()
+                
+                if resume_rag.has_resume_index(user_id):
+                    logger.info(f"Searching user resume for: {query}")
+                    resume_context = await resume_rag.search_user_resume(user_id, query, top_k=3)
+                    
+                    if resume_context:
+                        context_text += "Information from your resume:\n"
+                        for item in resume_context:
+                            context_text += f"- {item['content']}\n"
+                        context_text += "\n"
+                        logger.info(f"Added {len(resume_context)} resume chunks to context")
+                else:
+                    logger.info(f"No resume index found for user {user_id}")
             
             # Add relevant knowledge base context
             if relevant_context:
@@ -303,15 +325,17 @@ class ChatbotService:
             
             # Create comprehensive prompt
             prompt = f"""You are SkillEdge-AI Assistant, an intelligent chatbot for the SkillEdge-AI interview preparation platform. 
-You have two main functions:
+You have three main functions:
 
 1. Answer general questions about SkillEdge-AI platform (features, benefits, how to use, etc.)
 2. Provide personalized analysis and advice based on user's interview reports
+3. Answer questions about the user's resume (when resume context is provided)
 
 Guidelines:
 - Be helpful, professional, and encouraging
 - Use the provided context to give accurate information
 - When analyzing reports, be specific and actionable in your advice
+- When discussing resume, use the information from the user's actual resume
 - If you don't have enough information, ask clarifying questions
 - Keep responses concise but comprehensive
 - Focus on helping users improve their interview performance
@@ -324,7 +348,11 @@ User Question: {query}
 
 Please provide a helpful and relevant response:
 
-Note: as you are a chatbot assistane, please give short concise and to the point answers
+Note: as you are a chatbot assistant, please give short concise and to the point answers
+
+Note: if user asks for any advice regarding his reports or asks like suggest me an exercise, please answer him, first check for his reports and then give personalized advice based on his performance data. you can use your own knowledge about interview best practices to give suggestions
+
+Note: if user asks about their resume (e.g., skills, experience, education), use the information from their resume context provided above. Be specific and reference actual content from their resume.
 """
 
             # Generate response using Gemini
@@ -340,7 +368,7 @@ Note: as you are a chatbot assistane, please give short concise and to the point
             logger.exception("Full traceback:")
             return f"I apologize, but I'm experiencing technical difficulties: {str(e)}. Please try again later."
     
-    async def analyze_user_reports(self, query: str, user_reports: Dict[str, Any]) -> str:
+    async def analyze_user_reports(self, query: str, user_reports: Dict[str, Any], user_id: str = None, include_resume: bool = False) -> str:
         """Analyze user's interview reports and provide personalized insights"""
         try:
             logger.info(f"Analyzing user reports for query: {query}")
@@ -397,7 +425,9 @@ Note: as you are a chatbot assistane, please give short concise and to the point
             # Generate personalized response
             response = await self.generate_response(
                 query=query,
-                user_reports=user_reports
+                user_reports=user_reports,
+                user_id=user_id,
+                include_resume=include_resume
             )
             
             return response

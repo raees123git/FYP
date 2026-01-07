@@ -18,6 +18,7 @@ class ChatRequest(BaseModel):
     message: str = Field(..., description="User's message to the chatbot", min_length=1)
     conversation_id: Optional[str] = Field(None, description="Conversation ID for maintaining context")
     include_reports: bool = Field(default=False, description="Whether to include user's reports in analysis")
+    include_resume: bool = Field(default=False, description="Whether to include user's resume in context")
 
 class ChatResponse(BaseModel):
     """Chat response model"""
